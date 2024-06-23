@@ -1,0 +1,7 @@
+line-length = 120
+
+[lint]
+select = ["D"]
+
+[lint.pydocstyle]
+convention = "pep257"
