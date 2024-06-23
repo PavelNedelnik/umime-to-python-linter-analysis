@@ -4,8 +4,12 @@
 
 import ast
 import re
+import shutil
+import subprocess
 import urllib
 from base64 import b64decode
+from pathlib import Path
+from tempfile import mkdtemp
 
 from unidecode import unidecode
 
@@ -111,3 +115,39 @@ def filter_valid(submits, verbose=True):
         print("Filtering invalid programs.")
         debug_invalid(submits)
     return submits.query("~code.str.startswith('INVALID')")
+
+
+def generate_linter_messages(code_string: str) -> list[tuple[str, str]]:
+    """Generate linter messages for the given code string. Beware, I could not find a fixed format for the messages, so this is a bit of a hack.
+
+    Arguments:
+        code_string -- Python string with the code to be linted.
+
+    Returns:
+        Message code and text pairs.
+    """
+    failed = False
+    try:
+        temp_dir = Path(mkdtemp())
+        temp_file = temp_dir / "temp.py"
+        with open(temp_file, "w") as f:
+            f.write(code_string)
+        result = subprocess.run(["py", "-m", "edulint", temp_file], text=True, capture_output=True)
+    except:
+        failed = True
+    finally:
+        shutil.rmtree(temp_dir)
+
+    if failed or result.stderr:
+        raise RuntimeError(f"Failed to lint code: {code_string}")
+
+    parsed = []
+    for message in result.stdout.split("\n"):
+        if message:  # ignores empty lines
+            message = message[len(str(temp_file.resolve())) + 1 :]  # remove the name of the temporary file
+            codes = re.findall(r"[A-Z]\d{3,4}", message)  # find codes e.g., E1234
+            if not len(codes):  # if no code is found, the message is not valid
+                raise RuntimeError(f"Failed to parse message: {message}")
+            parsed.append((codes[0], message))
+
+    return parsed
