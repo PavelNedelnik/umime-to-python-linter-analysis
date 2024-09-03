@@ -132,14 +132,17 @@ def generate_linter_messages(code_string: str) -> list[tuple[str, str]]:
         temp_file = temp_dir / "temp.py"
         with open(temp_file, "w") as f:
             f.write(code_string)
-        result = subprocess.run(["py", "-m", "edulint", temp_file], text=True, capture_output=True)
+        result = subprocess.run(["py", "-m", "edulint", "check", temp_file], text=True, capture_output=True)
     except:
         failed = True
     finally:
         shutil.rmtree(temp_dir)
 
-    if failed or result.stderr:
-        raise RuntimeError(f"Failed to lint code: {code_string}")
+    if failed:
+        raise RuntimeError(f"Unexpected error while linting code: {code_string}")
+
+    if result.stderr:
+        raise RuntimeError(f"Linting finished with an error: {result.stderr}")
 
     parsed = []
     for message in result.stdout.split("\n"):
@@ -148,6 +151,7 @@ def generate_linter_messages(code_string: str) -> list[tuple[str, str]]:
             codes = re.findall(r"[A-Z]\d{3,4}", message)  # find codes e.g., E1234
             if not len(codes):  # if no code is found, the message is not valid
                 raise RuntimeError(f"Failed to parse message: {message}")
-            parsed.append((codes[0], message))
+            if codes[0] != "W292":  # ignore newline errors
+                parsed.append((codes[0], message))
 
     return parsed
