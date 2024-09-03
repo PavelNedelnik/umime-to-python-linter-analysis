@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
+from sklearn.feature_extraction.text import CountVectorizer
 
 from src.code_processing import decode_code_string
 
@@ -94,12 +95,33 @@ def load_messages(data_path: Path) -> pd.DataFrame:
         data_path -- Path to the log with linter messages.
 
     Returns:
-        _description_
+        Dataframe of message codes and message logs for each processed submission.
     """
     print("Loading messages...", end="")
     if data_path.is_dir():
-        data_path = data_path / "messages.csv"
-    messages = pd.read_csv(data_path, sep=";", index_col=0)
+        data_path = data_path / "messages.txt"
+    with open(data_path, "r") as f:
+        messages = [eval(line) for line in f.readlines()]
+    index, data = list(zip(*messages))
+    result = pd.DataFrame([list(zip(*row)) for row in data], index=index, columns=["codes", "text"])
     print("Done.")
 
-    return messages
+    print("All finished. Returning messages for {} submissions.".format(result.shape[0]))
+    return result
+
+
+def vectorize_messages(messages) -> pd.DataFrame:
+    """Vectorize messages into a count matrix.
+
+    Arguments:
+        messages -- Dataframe of message codes and message logs for each processed submission.
+
+    Returns:
+        Matrix of message counts.
+    """
+    vectorizer = CountVectorizer()
+    return pd.DataFrame(
+        vectorizer.fit_transform(messages["codes"].apply(" ".join)).toarray(),
+        columns=vectorizer.get_feature_names_out(),
+        index=messages.index,
+    )
