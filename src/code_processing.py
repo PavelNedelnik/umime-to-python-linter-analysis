@@ -142,7 +142,7 @@ def generate_linter_messages(code_string: str) -> list[tuple[str, str]]:
         raise RuntimeError(f"Unexpected error while linting code: {code_string}")
 
     if result.stderr:
-        raise RuntimeError(f"Linting finished with an error: {result.stderr}")
+        raise RuntimeError(f"Finished with an error: {result.stderr} while lingting code: {code_string}")
 
     parsed = []
     for message in result.stdout.split("\n"):
