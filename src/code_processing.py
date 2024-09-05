@@ -141,10 +141,11 @@ def generate_linter_messages(code_string: str) -> list[tuple[str, str]]:
     if failed:
         raise RuntimeError(f"Unexpected error while linting code: {code_string}")
 
-    if result.stderr:
-        raise RuntimeError(f"Finished with an error: {result.stderr} while lingting code: {code_string}")
-
     parsed = []
+
+    if result.stderr:
+        parsed.append(("SYNTAX_ERROR", result.stderr))
+
     for message in result.stdout.split("\n"):
         if message:  # ignores empty lines
             message = message[len(str(temp_file.resolve())) + 1 :]  # remove the name of the temporary file
