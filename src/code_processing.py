@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 import urllib
+import warnings
 from base64 import b64decode
 from pathlib import Path
 from tempfile import mkdtemp
@@ -138,10 +139,16 @@ def generate_linter_messages(code_string: str) -> list[tuple[str, str]]:
     finally:
         shutil.rmtree(temp_dir)
 
+    parsed = []
+
     if failed:
+        if result.stderr:
+            # handle edulint error messages
+            return parsed.append(("SYNTAX_ERROR", result.stderr))
         raise RuntimeError(f"Unexpected error while linting code: {code_string}")
 
-    parsed = []
+    if result.stderr:
+        warnings.warn(result.stderr)
 
     if result.stderr:
         parsed.append(("SYNTAX_ERROR", result.stderr))
