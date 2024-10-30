@@ -140,7 +140,9 @@ def load_messages(data_path: Path) -> pd.DataFrame:
         messages = [eval(line) for line in f.readlines()]
     index, data = list(zip(*messages))
     result = pd.DataFrame(
-        [list(zip(*row)) if len(row) else [(), ()] for row in data], index=index, columns=["codes", "text"]
+        [list(zip(*row)) if len(row) else [(), ()] for row in data],
+        index=index,
+        columns=["EduLint codes", "EduLint messages"],
     )
     print("Done.")
 
@@ -164,7 +166,7 @@ def assign_defects(log: pd.DataFrame, defects: pd.DataFrame) -> pd.DataFrame:
             inv_code_dict[code] = defect_id
 
     defect_ids = []
-    for row in log["codes"]:
+    for row in log["EduLint codes"]:
         codes = []
         for code in row:
             if code in inv_code_dict:
