@@ -13,7 +13,7 @@ from src.loading_utils import filter_columns, filter_rows, logger, setup_data_pa
 
 
 @logger.advanced_step_decorator("loading ipython log", "finished loading ipython log", heading_level=1)
-def load_log(data_path: str | Path, mode: str = "correct") -> pd.DataFrame:
+def load_log(data_path: str | Path, mode: str = "final") -> pd.DataFrame:
     """Load and clean the ipython log database.
 
     Arguments:
@@ -307,7 +307,7 @@ def open_ipython_messages(data_path: Path) -> pd.DataFrame:
         Dataframe with the ipython messages.
     """
     logger.simple_step_start("Opening...")
-    data_path = setup_data_path(data_path, "messages.csv")
+    data_path = setup_data_path(data_path, "messages.txt")
     with open(data_path, "r") as f:
         messages = [eval(line) for line in f.readlines()]
     logger.simple_step_end("Found {} rows.".format(len(messages)))
