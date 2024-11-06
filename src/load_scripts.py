@@ -1,66 +1,160 @@
-"""Data loading and preprocessing.
+"""Provides scripts for simplified loading and cleaning of the data."""
 
-TODO use logging
-
-Provides scripts for simplified loading and cleaning of the data.
-"""
+# TODO caching
 
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
 
 from src.code_processing import decode_code_string
+from src.loading_utils import filter_columns, filter_rows, logger, setup_data_path
 
 
-def load_log(data_path: Path) -> pd.DataFrame:
+@logger.advanced_step_decorator("loading ipython log", "finished loading ipython log", heading_level=1)
+def load_log(data_path: str | Path, mode: str = "correct") -> pd.DataFrame:
     """Load and clean the ipython log database.
 
     Arguments:
         data_path -- Path to the ipython log.
 
     Returns:
-        Loaded and cleaned ipython log.
+        Properly loaded and cleaned ipython log.
     """
-    print("Loading log...", end="")
-    if data_path.is_dir():
-        data_path = data_path / "log.csv"
-    log = pd.read_csv(data_path, sep=";")
-    print(" Done. Found {} values.".format(len(log)))
+    log = open_ipython_log(data_path)
 
-    print("Cleaning...")
-    len_before = len(log)
-    log.drop_duplicates(inplace=True)
-    print("\tDropped {} duplicates.".format(len_before - (len_before := len(log))))
+    log = clean_ipython_log(log)
 
-    log.dropna(inplace=True)
-    print("\tDropped {} rows with missing values.".format(len_before - (len_before := len(log))))
+    logger.simple_step_start("Filtering submissions...")
+    len_before = log.shape[0]
+    if mode == "correct":
+        log = log[log["correct"]]
+        log = log.drop("correct", axis=1)
+        logger.simple_step_end(
+            "Keeping only correct submissions. Dropped {} rows, {} remaining.".format(
+                len_before - log.shape[0], log.shape[0]
+            )
+        )
+    elif mode == "final":
+        log = filter_final_submissions(log)
+        logger.simple_step_end(
+            "Keeping only the last submission of the session. Dropped {} rows, {} remaining.".format(
+                len_before - log.shape[0], log.shape[0]
+            )
+        )
+    else:
+        logger.simple_step_end("No filtering applied.")
 
-    print("\tConverting types...")
-    print("\t\tTime...", end="")
-    log["time"] = pd.to_datetime(log["time"])
-    print(" Done.")
-    print("\t\tCorrect...", end="")
-    log["correct"] = log["correct"].astype(bool)
-    print(" Done.")
-    print("\tDone.")
-
-    print("\tDecoding submissions...", end="")
-    log["answer"] = log["answer"].apply(decode_code_string)
-    print(" Done.")
-
-    len_before = len(log)
-    log = log[log["answer"].apply(lambda x: len(str.strip(x))) > 0]
-    print("\tDropped {} rows with empty submissions.".format(len_before - (len_before := len(log))))
-
-    print("Done.")
-
-    print("All finished. Returning log with {} values.".format(len(log)))
     return log
 
 
+def filter_final_submissions(log: pd.DataFrame) -> pd.DataFrame:
+    """Keep only the last submission from each user session.
+
+    The end of the session is defined as a sucessful submission, the user changing to a different
+    task or the user not submitting for more than 20 minutes.
+
+    Arguments:
+        log -- Ipython log.
+
+    Returns:
+        Ipython log with only the last submission from each user session.
+    """
+    new_log = []
+    for user in np.unique(log["user"]):
+        # get the user history and make sure the values are sorted
+        user_history = log[log["user"] == user].sort_values("time")
+
+        # find the session breakpoints
+        user_history = user_history[
+            user_history["correct"]
+            | user_history["item"].ne(user_history["item"].shift(-1))
+            | (user_history["time"].diff() > pd.Timedelta(minutes=20))
+        ]
+
+        new_log.append(user_history)
+
+    log = pd.concat(new_log).sort_index()
+    return log
+
+
+def open_ipython_log(data_path: pd.DataFrame) -> pd.DataFrame:
+    """Open the ipython log database.
+
+    Arguments:
+        data_path -- Path to the ipython log.
+
+    Returns:
+        Dataframe with the ipython log.
+    """
+    logger.simple_step_start("Opening...")
+    data_path = setup_data_path(data_path, "log.csv")
+    log = pd.read_csv(data_path, sep=";")
+    logger.simple_step_end("Found {} rows.".format(log.shape[0]))
+    return log
+
+
+@logger.advanced_step_decorator("data cleaning", "finished cleaning data", heading_level=2)
+def clean_ipython_log(log: pd.DataFrame) -> pd.DataFrame:
+    """Do all the necessary data cleaning of the ipython log.
+
+    Arguments:
+        log -- Dataframe with the ipython log.
+
+    Returns:
+       Ipython log with all the necessary data cleaning done.
+    """
+    log = filter_columns(log, ["id", "user", "item", "answer", "correct", "responseTime", "time"])
+
+    log = convert_types_in_ipython_log(log)
+
+    logger.simple_step_start("Dropping empty rows...")
+    len_before = len(log)
+    log.dropna(inplace=True)
+    logger.simple_step_end(
+        "Dropped {} rows, {} remaining.".format(len_before - log.shape[0], len_before := log.shape[0])
+    )
+
+    logger.simple_step_start("Dropping duplicates...")
+    log.drop_duplicates(inplace=True)
+    logger.simple_step_end(
+        "Dropped {} rows, {} remaining.".format(len_before - log.shape[0], len_before := log.shape[0])
+    )
+
+    logger.simple_step_start("Dropping empty submissions...")
+    log = log[log["answer"].apply(lambda x: len(str.strip(x))) > 0]
+    logger.simple_step_end("Dropped {} rows, {} remaining.".format(len_before - log.shape[0], log.shape[0]))
+
+    logger.simple_step_start("Decoding answers...")
+    log["answer"] = log["answer"].apply(decode_code_string)
+    logger.simple_step_end()
+
+    return log
+
+
+@logger.advanced_step_decorator("converting column types", "finished converting types", heading_level=2)
+def convert_types_in_ipython_log(log: pd.DataFrame) -> pd.DataFrame:
+    """Fix columns with incorrectly loaded data type.
+
+    Arguments:
+        log -- Dataframe with the ipython log.
+
+    Returns:
+        Ipython log with columns properly typed.
+    """
+    logger.simple_step_start("<time> column...")
+    log["time"] = pd.to_datetime(log["time"])
+    logger.simple_step_end()
+
+    logger.simple_step_start("<correct> column...")
+    log["correct"] = log["correct"].astype(bool)
+    logger.simple_step_end()
+
+    return log
+
+
+@logger.advanced_step_decorator("loading ipython items", "finished loading ipython items", heading_level=1)
 def load_item(data_path: Path) -> pd.DataFrame:
     """Load and clean the ipython item database.
 
@@ -70,60 +164,116 @@ def load_item(data_path: Path) -> pd.DataFrame:
     Returns:
         Loaded and cleaned ipython item.
     """
-    print("Loading item...", end="")
-    if data_path.is_dir():
-        data_path = data_path / "item.csv"
-    item = pd.read_csv(data_path, sep=";", index_col=0)
-    print("Done.")
+    items = open_ipython_items(data_path)
 
-    print("Cleaning...")
-    num_columns = item.shape[1]
-    item = item[["name", "instructions", "solution"]]
-    print("\tDropped {} unused columns".format(num_columns - item.shape[1]))
+    items = clean_ipython_items(items)
 
-    print("\tDecoding instructions and solutions...", end="")
-    item["instructions"] = item["instructions"].apply(lambda x: eval(x)[0][1])
-    item["solution"] = item["solution"].apply(lambda x: eval(x)[0][1]).apply(decode_code_string)
-    print("Done")
-
-    print("All finished. Returning item.")
-    return item
+    return items
 
 
-def load_defects(data_path: Path) -> pd.DataFrame:
-    """Load and clean the ipython defects database.
+def open_ipython_items(data_path: Path) -> pd.DataFrame:
+    """Open the ipython item table.
 
     Arguments:
-        data_path -- Path to the ipython log.
+        data_path -- Path to the ipython item table.
 
     Returns:
-        Loaded and cleaned ipython defects.
+        Dataframe with the ipython items.
     """
-    print("Loading defects...", end="")
-    if data_path.is_dir():
-        data_path = data_path / "defects.csv"
-    defects = pd.read_csv(data_path)
-    print("Done.")
+    logger.simple_step_start("Opening...")
+    data_path = setup_data_path(data_path, "item.csv")
+    items = pd.read_csv(data_path, sep=";", index_col=0)
+    logger.simple_step_end("Found {} rows.".format(items.shape[0]))
+    return items
 
-    print("Cleaning...")
-    num_columns = defects.shape[1]
-    defects = defects[["defect name", "EduLint code", "defect type", "description"]]
-    print("\tDropped {} unused columns".format(num_columns - defects.shape[1]))
 
-    len_before = len(defects)
-    defects.dropna(inplace=True)
-    print("\tDropped {} defects not detected by EduLint".format(len_before - (len_before := len(defects))))
+@logger.advanced_step_decorator("data cleaning", "finished cleaning data", heading_level=2)
+def clean_ipython_items(items: pd.DataFrame) -> pd.DataFrame:
+    """Do all the necessary data cleaning of the ipython items.
 
-    print("\tCleaning EduLint codes...", end="")
-    defects["EduLint code"] = defects["EduLint code"].apply(lambda x: tuple(map(str.strip, x.split(","))))
-    print("\tDone.")
+    Arguments:
+        items -- Dataframe with the ipython items.
 
-    print("Done.")
+    Returns:
+       Ipythons item with all the necessary data cleaning done.
+    """
+    items = filter_columns(items, ["name", "instructions", "solution"])
 
-    print("All finished. Returning defects.")
+    logger.simple_step_start("Decoding instructions...")
+    items["instructions"] = items["instructions"].apply(lambda x: eval(x)[0][1])
+    logger.simple_step_end()
+
+    logger.simple_step_start("Decoding solution...")
+    items["solution"] = items["solution"].apply(lambda x: eval(x)[0][1]).apply(decode_code_string)
+    logger.simple_step_end()
+
+    return items
+
+
+@logger.advanced_step_decorator("loading defect database", "finished loading defects", heading_level=1)
+def load_defects(data_path: Path) -> pd.DataFrame:
+    """Load and clean the defect table.
+
+    Arguments:
+        data_path -- Path to the defect table.
+
+    Returns:
+        Loaded and cleaned defect database.
+    """
+    defects = open_defects(data_path)
+
+    defects = clean_defects(defects)
+
     return defects
 
 
+def open_defects(data_path: Path) -> pd.DataFrame:
+    """Open the defect table.
+
+    Arguments:
+        data_path -- Path to the defect table.
+
+    Returns:
+        Dataframe with the ipython item.
+    """
+    logger.simple_step_start("Opening...")
+    data_path = setup_data_path(data_path, "defects.csv")
+    defects = pd.read_csv(data_path)
+    logger.simple_step_end("Found {} rows.".format(defects.shape[0]))
+    return defects
+
+
+@logger.advanced_step_decorator("data cleaning", "finished cleaning data", heading_level=2)
+def clean_defects(defects: pd.DataFrame) -> pd.DataFrame:
+    """Clean the defect table.
+
+    Arguments:
+        defects -- Dataframe with the defects.
+
+    Returns:
+        Cleaned defect table.
+    """
+    defects = filter_columns(defects, ["defect name", "EduLint code", "defect type", "description"])
+
+    logger.simple_step_start("Dropping duplicates...")
+    len_before = len(defects)
+    defects.drop_duplicates(inplace=True)
+    logger.simple_step_end(
+        "Dropped {} rows, {} remaining.".format(len_before - defects.shape[0], len_before := defects.shape[0])
+    )
+
+    logger.simple_step_start("Dropping defects not detected by EduLint...")
+    defects.dropna(subset=["EduLint code"], inplace=True)
+    logger.simple_step_end("Dropped {} rows, {} remaining.".format(len_before - defects.shape[0], defects.shape[0]))
+
+    logger.simple_step_start("Decoding EduLint codes...")
+    defects["EduLint code"] = defects["EduLint code"].apply(lambda x: tuple(map(str.strip, x.split(","))))
+    logger.simple_step_end()
+
+    return defects
+
+
+@logger.advanced_step_decorator("loading messages", "finished loading messages", heading_level=1)
 def load_messages(data_path: Path) -> pd.DataFrame:
     """Load linter messages corresponding to the entries in the log as generated by the <generate_linter_messages.py> script.
 
@@ -133,21 +283,35 @@ def load_messages(data_path: Path) -> pd.DataFrame:
     Returns:
         Dataframe of message codes and message logs for each processed submission.
     """
-    print("Loading messages...", end="")
-    if data_path.is_dir():
-        data_path = data_path / "messages.txt"
-    with open(data_path, "r") as f:
-        messages = [eval(line) for line in f.readlines()]
+    messages = open_ipython_messages(data_path)
+
+    logger.simple_step_start("Building dataframe...")
     index, data = list(zip(*messages))
     result = pd.DataFrame(
-        [list(zip(*row)) if len(row) else [(), ()] for row in data],
+        [[pd.Series(row[0]), pd.Series(row[1])] if len(row) == 2 else [pd.Series(), pd.Series()] for row in data],
         index=index,
         columns=["EduLint codes", "EduLint messages"],
     )
-    print("Done.")
+    logger.simple_step_end()
 
-    print("All finished. Returning messages for {} submissions.".format(result.shape[0]))
     return result
+
+
+def open_ipython_messages(data_path: Path) -> pd.DataFrame:
+    """Open the ipython messages database.
+
+    Arguments:
+        data_path -- Path to the ipython messages.
+
+    Returns:
+        Dataframe with the ipython messages.
+    """
+    logger.simple_step_start("Opening...")
+    data_path = setup_data_path(data_path, "messages.csv")
+    with open(data_path, "r") as f:
+        messages = [eval(line) for line in f.readlines()]
+    logger.simple_step_end("Found {} rows.".format(len(messages)))
+    return messages
 
 
 def assign_defects(log: pd.DataFrame, defects: pd.DataFrame) -> pd.DataFrame:
