@@ -288,7 +288,7 @@ def load_messages(data_path: Path) -> pd.DataFrame:
     logger.simple_step_start("Building dataframe...")
     index, data = list(zip(*messages))
     result = pd.DataFrame(
-        [[pd.Series(row[0]), pd.Series(row[1])] if len(row) == 2 else [pd.Series(), pd.Series()] for row in data],
+        [list(zip(*row)) if len(row) else [[], []] for row in data],
         index=index,
         columns=["EduLint codes", "EduLint messages"],
     )
