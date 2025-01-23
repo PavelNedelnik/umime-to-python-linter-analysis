@@ -88,6 +88,7 @@ def get_parse_error(code):
 def generate_linter_messages(code_string: str) -> list[tuple[str, str]]:
     """Generate linter messages for the given code string. Beware, I could not find a fixed format for the messages, so this is a bit of a hack.
 
+    TODO no longer works
     Arguments:
         code_string -- Python string with the code to be linted.
 
