@@ -39,6 +39,9 @@ def load_log(ipython_path, only_correct=True):
     log.dropna(inplace=True)
     log.drop_duplicates(inplace=True)
 
+    # keep only users with at least 5 submissions
+    log = log[log["user"].map(log["user"].value_counts()) >= 5]
+
     # Decode submissions
     log["answer"] = log["answer"].apply(parse_code_string)
 
