@@ -144,5 +144,4 @@ def load(ipython_path, data_path):
     # Keep only detected defects
     defects = defects.loc[defects.index.isin(defect_log.columns)]
 
-    return items, log, defects, defect_log
-    return items, log, defects, defect_log
+    return items, log, defects, defect_log, code_to_defect_id
