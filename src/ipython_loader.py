@@ -49,8 +49,8 @@ def load_log(ipython_path, only_correct=True):
         # Keep only correct answers
         log = log[log["correct"]]
 
-        # Keep only one answer per session, first because EduLint might already be integrated
-        log = log.reset_index().groupby(["user", "item"], as_index=False).first().set_index("index")
+    # Keep only one answer per session
+    log = log.reset_index().groupby(["user", "item"], as_index=False).last().set_index("index")
 
     return log
 
@@ -132,10 +132,10 @@ def vectorize_defects(messages, log):
     return defect_log
 
 
-def load(ipython_path, data_path):
+def load(ipython_path, data_path, only_correct=True):
     """Load and preprocess data."""
     items = load_items(ipython_path)
-    log = load_log(ipython_path)
+    log = load_log(ipython_path, only_correct=only_correct)
     items, log = filter_items_and_log(items, log)
     defects, code_to_defect_id = load_defects(data_path)
     messages = load_messages(ipython_path, log, code_to_defect_id)
