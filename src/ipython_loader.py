@@ -24,7 +24,7 @@ def load_items(ipython_path):
     return items
 
 
-def load_log(ipython_path, only_correct=True):
+def load_log(ipython_path, only_correct=True, only_final=True):
     """Load and preprocess log data."""
     log = pd.read_csv(ipython_path / "log.csv", sep=";")
 
@@ -49,8 +49,9 @@ def load_log(ipython_path, only_correct=True):
         # Keep only correct answers
         log = log[log["correct"]]
 
-    # Keep only one answer per session
-    log = log.reset_index().groupby(["user", "item"], as_index=False).last().set_index("index")
+    if only_final:
+        # Keep only one answer per session
+        log = log.reset_index().groupby(["user", "item"], as_index=False).last().set_index("index")
 
     return log
 
@@ -134,10 +135,10 @@ def vectorize_defects(messages, log):
     return defect_log
 
 
-def load(ipython_path, data_path, only_correct=True):
+def load(ipython_path, data_path, only_correct=True, only_final=True):
     """Load and preprocess data."""
     items = load_items(ipython_path)
-    log = load_log(ipython_path, only_correct=only_correct)
+    log = load_log(ipython_path, only_correct=only_correct, only_final=True)
     items, log = filter_items_and_log(items, log)
     defects, code_to_defect_id = load_defects(data_path)
     messages = load_messages(ipython_path, log, code_to_defect_id)
