@@ -91,7 +91,9 @@ def load_defects(data_path):
     # Convert EduLint codes from string to tuple
     defects["EduLint code"] = defects["EduLint code"].apply(lambda x: tuple(map(str.strip, x.split(","))))
 
-    # Drop noisy defects: "missing docstring" and "mixed indentation"
+    # Drop noisy defects:
+    ## "missing docstring" (students are not introduced to the concept of docstrings)
+    ## "mixed indentation" (very likely caused by logging errors or copy-pasting)
     defects.drop([66, 4], axis=0, inplace=True)
 
     # Create a dictionary mapping EduLint codes to defect indices
