@@ -98,6 +98,21 @@ def load_log(ipython_path):
 
 def filter_items_and_log(items, log):
     """Filter items and log entries based on submission count."""
+    # Filter out items with duplicate names
+    duplicate_names = items["name"].value_counts() > 1
+    duplicate_names = duplicate_names[duplicate_names].index
+    if len(duplicate_names) > 0:
+        for item_name in duplicate_names:
+            # keep only the first entry in items
+            duplicate_entries = items[items["name"] == item_name].index
+            shared_id = duplicate_entries[0]
+            for id in duplicate_entries[1:]:
+                # drop from items
+                if id != shared_id:
+                    items = items[items.index != id]
+                # propagate shared id to log
+                log.loc[log["item"] == id, "item"] = shared_id
+
     # Keep only items with at least 100 submissions
     valid_items = items.index.isin((log["item"].value_counts() > 100).index)
     items = items.loc[valid_items]
@@ -185,9 +200,6 @@ def load(ipython_path, data_path, only_correct=True, only_final=True, only_prese
     messages = load_messages(ipython_path, log, code_to_defect_id)
     defect_log = vectorize_defects(messages, log)
 
-    # Keep only detected defects
-    defects = defects.loc[defects.index.isin(defect_log.columns)]
-
     # optinal filtering is here at the end to ensure consistency in kept items and defects
 
     # Keep only correct answers
@@ -204,5 +216,9 @@ def load(ipython_path, data_path, only_correct=True, only_final=True, only_prese
     # Replace defect counts with presence (1 if present, 0 otherwise)
     if only_presence:
         defect_log = (defect_log > 0).astype(int)
+
+    # Keep only detected defects
+    defects = defects.loc[defects.index.isin(defect_log.columns)]
+    defect_log = defect_log.loc[:, defects.index]
 
     return items, log, defects, defect_log, code_to_defect_id
