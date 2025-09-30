@@ -1,23 +1,43 @@
 """This module contains models that do not consider any student or task context."""
 
+import numpy as np
 import pandas as pd
 
-from src.prioritization.base import ContextProvider, PrioritizationModel
+from src.prioritization.base import PrioritizationModel
 
 
 class SeverityModel(PrioritizationModel):
-    """Prioritizes defects based on their inherent severity."""
+    """
+    Prioritize defects based on their inherent severity.
 
-    def train(self, context_provider: ContextProvider):
-        """Train the model."""
-        super().train(context_provider)
-        self.severity_map = self.context_provider.defects["severity"]
-        return self
+    This is a stateless baseline model.
+    """
+
+    def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
+        """Initialize the model with shared data."""
+        super().__init__(items, defects, *args, **kwargs)
+        self.severity_map = self.defects["severity"]
 
     def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
-        """Prioritize defects."""
+        """Prioritize defects based on their severity."""
         return self._apply_scores(self.severity_map, defect_counts)
 
+    def get_context_type(self) -> str:
+        """Return the type of context the model uses."""
+        return "stateless"
+
+    def get_model_description(self) -> str:
+        """Return a human-readable description of the model's logic."""
+        return "Prioritizes defects based on their inherent severity (a fixed, global value)."
+
+    def get_measure_name(self) -> str:
+        """Return a precise description of the model's output."""
+        return "Severity (1 = Least Severe, 5 = Most Severe)"
+
+    def get_measure_description(self) -> str:
+        """Return a human readable description of the model output."""
+        return "Fixed Severity"
+
     def get_model_weights(self) -> pd.DataFrame:
-        """Return None. The model has no contextual weights."""
-        return None
+        """Return a single-row matrix for consistency in analysis."""
+        return self.severity_map.to_frame().T
