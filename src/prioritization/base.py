@@ -34,7 +34,14 @@ class PrioritizationModel(ABC):
 
     @abstractmethod
     def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
-        """Prioritize defects for a single submission."""
+        """Prioritize defects for a single submission.
+
+        Args:
+            submission: A Series with information about a single submission - includes task id, user id, etc.
+            defect_counts: A Series of the number of times each defect is present in the submission.
+        Returns:
+            A Series of priorities for each defect (Higher is more important, -1 indicates the defect is not present).
+        """
         pass
 
     def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
@@ -51,9 +58,10 @@ class PrioritizationModel(ABC):
 
     def _apply_scores(self, scores: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Apply scores to defects, filtering out those not present in the submission."""
-        defect_presence = (defect_counts > 0).astype(int)
-        priorities = scores.loc[defect_presence.index] * defect_presence
-        return priorities.sort_values(ascending=False)
+        scores = scores.loc[defect_counts.index]  # Align scores and counts
+        scores[scores < 0] = 0  # Avoid negative priorities for present defects
+        scores[defect_counts <= 0] = -1  # Missing defects get negative priority
+        return scores
 
     def _handle_update_input(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
         if isinstance(submissions, pd.Series):
