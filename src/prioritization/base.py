@@ -50,11 +50,11 @@ class PrioritizationModel(ABC):
 
         This method does nothing for stateless models.
         """
-        pass
+        return self
 
     def reset_model(self):
         """Reset the model's internal state to its initial configuration."""
-        pass
+        return self
 
     def _apply_scores(self, scores: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Apply scores to defects, filtering out those not present in the submission."""

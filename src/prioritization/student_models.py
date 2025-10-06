@@ -62,7 +62,7 @@ class StudentCharacteristicModel(StudentPrioritizationModel):
         priorities = self.user_z_scores.loc[user_id]
         return self._apply_scores(priorities.abs().fillna(0), defect_counts)
 
-    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
+    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
         """Update the model's state with a batch of new submissions."""
         submissions, defect_counts = self._handle_update_input(submissions, defect_counts)
 
@@ -85,11 +85,15 @@ class StudentCharacteristicModel(StudentPrioritizationModel):
 
         self._calculate_stats()
 
-    def reset_model(self):
+        return self
+
+    def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
         self.user_data = pd.DataFrame(columns=["submissions"])
         self.user_defect_counts = pd.DataFrame(columns=self.defects.index, dtype=int)
         self.user_z_scores = pd.DataFrame(columns=self.defects.index)
+
+        return self
 
     def get_model_description(self) -> str:
         """Return a human-readable description of the model's logic."""
@@ -127,7 +131,7 @@ class StudentFrequencyModel(StudentPrioritizationModel):
         priorities = self.user_defect_freqs.loc[user_id]
         return self._apply_scores(priorities.fillna(0), defect_counts)
 
-    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
+    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
         """Update the model's state with a batch of new submissions."""
         submissions, defect_counts = self._handle_update_input(submissions, defect_counts)
 
@@ -149,11 +153,15 @@ class StudentFrequencyModel(StudentPrioritizationModel):
 
         self.user_defect_freqs = self.user_defect_counts.divide(self.user_data, axis=0).fillna(0)
 
-    def reset_model(self):
+        return self
+
+    def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
         self.user_data = pd.Series(dtype=int)
         self.user_defect_counts = pd.DataFrame(columns=self.defects.index, dtype=int)
         self.user_defect_freqs = pd.DataFrame(columns=self.defects.index)
+
+        return self
 
     def get_model_weights(self) -> pd.DataFrame:
         """Return the pre-computed student-defect frequency matrix."""
@@ -192,7 +200,7 @@ class StudentEncounteredBeforeModel(StudentPrioritizationModel):
 
         return self._apply_scores(priorities.fillna(0), defect_counts)
 
-    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
+    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
         """Update the model's state with a batch of new submissions."""
         submissions, defect_counts = self._handle_update_input(submissions, defect_counts)
 
@@ -206,9 +214,13 @@ class StudentEncounteredBeforeModel(StudentPrioritizationModel):
             self.user_counters[user_id] += 1
             self.user_counters[user_id] *= 1 - defect_presence_mask
 
-    def reset_model(self):
+        return self
+
+    def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
         self.user_counters = {}
+
+        return self
 
     def get_model_weights(self) -> pd.DataFrame:
         """Return None. This model does not have a static weight matrix."""
@@ -255,7 +267,7 @@ class DefectMultiplicityModel(PrioritizationModel):
 
         return self._apply_scores(normalized_counts.abs().astype(float).fillna(0), defect_counts)
 
-    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
+    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
         """Update the model's state with a batch of new submissions."""
         submissions, defect_counts = self._handle_update_input(submissions, defect_counts)
 
@@ -264,10 +276,14 @@ class DefectMultiplicityModel(PrioritizationModel):
             [self.all_defect_counts, defect_counts.reindex(columns=self.defects.index, fill_value=0)]
         )
 
-    def reset_model(self):
+        return self
+
+    def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
         self.all_submissions = pd.DataFrame()
         self.all_defect_counts = pd.DataFrame(columns=self.defects.index, dtype=int)
+
+        return self
 
     def get_context_type(self) -> str:
         """Return the type of context the model uses."""

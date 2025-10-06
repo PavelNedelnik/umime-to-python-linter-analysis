@@ -43,16 +43,20 @@ class TaskCommonModel(TaskPrioritizationModel):
         commonality_scores = self.task_frequencies.loc[task_id]
         return self._apply_scores(commonality_scores, defect_counts)
 
-    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
+    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
         """Update the model's state with a batch of new submissions."""
         submissions, defect_counts = self._handle_update_input(submissions, defect_counts)
 
         task_freqs = (defect_counts > 0).groupby(submissions["item"]).mean()
         self.task_frequencies = self.task_frequencies.add(task_freqs, fill_value=0)
 
-    def reset_model(self):
+        return self
+
+    def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
         self.task_frequencies = pd.DataFrame(columns=self.defects.index, dtype=float)
+
+        return self
 
     def get_measure_name(self) -> str:
         """Return a precise, short description of the model's output."""
@@ -93,7 +97,7 @@ class TaskCharacteristicModel(TaskPrioritizationModel):
         priorities = self.task_z_scores.loc[task_id]
         return self._apply_scores(priorities.abs().fillna(0), defect_counts)
 
-    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
+    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
         """Update the model's state with a batch of new submissions."""
         submissions, defect_counts = self._handle_update_input(submissions, defect_counts)
 
@@ -105,10 +109,14 @@ class TaskCharacteristicModel(TaskPrioritizationModel):
         self.task_freqs = self.task_freqs.add(task_freqs_new, fill_value=0)
         self._calculate_stats()
 
-    def reset_model(self):
+        return self
+
+    def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
         self.task_freqs = pd.DataFrame(columns=self.defects.index, dtype=float)
         self.task_z_scores = pd.DataFrame(columns=self.defects.index)
+
+        return self
 
     def get_measure_name(self) -> str:
         """Return a precise, short description of the model's output."""
@@ -125,54 +133,3 @@ class TaskCharacteristicModel(TaskPrioritizationModel):
     def get_model_weights(self) -> pd.DataFrame:
         """Return the pre-computed task-defect z-score matrix."""
         return self.task_z_scores
-
-
-class CurrentlyTaughtPrioritizer(TaskPrioritizationModel):
-    """Prioritizes defects based on LLM judgements on where they relate to the currently taught concepts."""
-
-    def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, data_path: Path | str, *args, **kwargs):
-        """Initialize the model by loading LLM judgments from a file."""
-        super().__init__(items, defects, *args, **kwargs)
-        self.data_path = data_path
-        self.task_weights = self._load_llm_judgments()
-
-    def _load_llm_judgments(self) -> pd.DataFrame:
-        """Load LLM data and prepare the task-weights matrix."""
-        llm_data = pd.read_csv(self.data_path, sep="|", index_col=False)
-        task_name_to_id = self.items.reset_index().set_index("name")["id"]
-        llm_data["Task ID"] = llm_data["Task Name"].map(task_name_to_id)
-        task_weights = pd.crosstab(llm_data["Task ID"], llm_data["Defect ID"]).astype(bool).astype(int)
-        task_weights = task_weights.reindex(index=self.items.index, columns=self.defects.index, fill_value=0)
-        return task_weights
-
-    def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
-        """Prioritize defects based on pre-computed LLM weights."""
-        task_id = submission["item"]
-        if task_id not in self.task_weights.index:
-            return pd.Series(0, index=defect_counts.index)
-        llm_scores = self.task_weights.loc[task_id]
-        return self._apply_scores(llm_scores, defect_counts)
-
-    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
-        """Update is a no-op as LLM judgments are static."""
-        pass
-
-    def reset_model(self):
-        """Reset the model's state by re-loading the judgments."""
-        self.task_weights = self._load_llm_judgments()
-
-    def get_measure_name(self) -> str:
-        """Return a precise, short description of the model's output."""
-        return "LLM Judgment (0 = No, 1 = Yes)"
-
-    def get_measure_description(self) -> str:
-        """Return a human readable description of the model output."""
-        return "LLM Judgments on Currently Taught Concepts"
-
-    def get_model_description(self) -> str:
-        """Return a human-readable description of the model's logic."""
-        return "Prioritizes defects based on static LLM judgments about 'currently taught' concepts."
-
-    def get_model_weights(self) -> pd.DataFrame:
-        """Return the pre-computed task-defect LLM weight matrix."""
-        return self.task_weights
