@@ -223,8 +223,12 @@ class StudentEncounteredBeforeModel(StudentPrioritizationModel):
         return self
 
     def get_model_weights(self) -> pd.DataFrame:
-        """Return None. This model does not have a static weight matrix."""
-        return None
+        """Return the inverted user counters as a DataFrame."""
+        if not self.user_counters:
+            return pd.DataFrame(columns=self.defects.index)
+
+        weights_df = pd.DataFrame.from_dict(self.user_counters, orient="index")
+        return 1 / weights_df.reindex(columns=self.defects.index, fill_value=0)
 
     def get_measure_name(self) -> str:
         """Return a precise, short description of the model's output."""
@@ -259,8 +263,6 @@ class DefectMultiplicityModel(PrioritizationModel):
 
     def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Prioritize defects based on normalized multiplicity."""
-        self._calculate_stats()
-
         aligned_defect_counts = defect_counts.reindex(self.global_means.index, fill_value=0)
 
         normalized_counts = (aligned_defect_counts - self.global_means) / self.global_stds
@@ -275,6 +277,8 @@ class DefectMultiplicityModel(PrioritizationModel):
         self.all_defect_counts = pd.concat(
             [self.all_defect_counts, defect_counts.reindex(columns=self.defects.index, fill_value=0)]
         )
+
+        self._calculate_stats()
 
         return self
 
@@ -303,5 +307,4 @@ class DefectMultiplicityModel(PrioritizationModel):
 
     def get_model_weights(self) -> pd.DataFrame:
         """Return the pre-computed weight matrix for analysis."""
-        self._calculate_stats()
-        return pd.DataFrame({"means": self.global_means, "stds": self.global_stds}).T
+        return pd.concat([self.global_means, self.global_stds], axis=1)
