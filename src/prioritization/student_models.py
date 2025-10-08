@@ -125,6 +125,7 @@ class StudentFrequencyModel(StudentPrioritizationModel):
     def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Prioritize defects."""
         user_id = submission["user"]
+
         if user_id not in self.user_defect_freqs.index:
             return pd.Series(0, index=defect_counts.index)
 
@@ -136,7 +137,6 @@ class StudentFrequencyModel(StudentPrioritizationModel):
         submissions, defect_counts = self._handle_update_input(submissions, defect_counts)
 
         submissions_by_user = submissions.groupby("user")
-        defect_counts_by_user = defect_counts.groupby(submissions["user"])
 
         for user_id, user_submissions in submissions_by_user:
             self.user_data.loc[user_id] = self.user_data.get(user_id, 0) + len(user_submissions)
@@ -189,30 +189,36 @@ class StudentEncounteredBeforeModel(StudentPrioritizationModel):
         self.user_counters = {}
 
     def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
-        """Prioritize defects based on the current state of submissions since last encounter."""
+        """Prioritize defects based on how recently they were encountered."""
         user_id = submission["user"]
 
         if user_id not in self.user_counters:
             return pd.Series(0, index=defect_counts.index)
 
-        scores = self.user_counters[user_id].loc[defect_counts.index]
-        priorities = (1 / scores.replace(0, np.nan)).fillna(0)
+        scores = self.user_counters[user_id]
+        priorities = (1 / scores).fillna(0.0)
 
-        return self._apply_scores(priorities.fillna(0), defect_counts)
+        return self._apply_scores(priorities, defect_counts)
 
     def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
         """Update the model's state with a batch of new submissions."""
         submissions, defect_counts = self._handle_update_input(submissions, defect_counts)
 
-        for submission_id, submission in submissions.iterrows():
-            user_id = submission["user"]
-            defect_presence_mask = (defect_counts.loc[submission_id] > 0).astype(int)
+        defect_presence = defect_counts > 0
 
+        user_histories = defect_presence.groupby(submissions["user"])
+
+        for user_id, user_history in user_histories:
             if user_id not in self.user_counters:
-                self.user_counters[user_id] = pd.Series(0, index=self.defects.index, dtype=int)
+                self.user_counters[user_id] = pd.Series(None, index=self.defects.index, dtype=int)
 
-            self.user_counters[user_id] += 1
-            self.user_counters[user_id] *= 1 - defect_presence_mask
+            counter = self.user_counters[user_id]
+
+            for _, defect_presence in user_history.iterrows():
+                counter = counter.where(~defect_presence, 0)
+                counter += 1
+
+            self.user_counters[user_id] = counter
 
         return self
 

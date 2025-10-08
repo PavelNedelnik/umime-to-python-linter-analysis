@@ -60,7 +60,7 @@ class TaskCommonModel(TaskPrioritizationModel):
 
     def get_measure_name(self) -> str:
         """Return a precise, short description of the model's output."""
-        return "Frequency"
+        return "Relative Frequency"
 
     def get_measure_description(self) -> str:
         """Return a human readable description of the model output."""
