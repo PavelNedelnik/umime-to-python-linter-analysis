@@ -16,11 +16,11 @@ class SeverityModel(PrioritizationModel):
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
         """Initialize the model with shared data."""
         super().__init__(items, defects, *args, **kwargs)
-        self.severity_map = self.defects["severity"]
+        self.severity_map = self.defects["severity"].reindex(self.defects.index)
 
-    def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
+    def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Prioritize defects based on their severity."""
-        return self._apply_scores(self.severity_map, defect_counts)
+        return self.severity_map.reindex(defect_counts.index)
 
     def get_context_type(self) -> str:
         """Return the type of context the model uses."""

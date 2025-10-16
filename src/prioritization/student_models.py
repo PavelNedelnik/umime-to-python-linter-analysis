@@ -5,12 +5,14 @@ These models calculate a weight matrix where rows are students and columns are d
 """
 
 from abc import ABC, abstractmethod
+from collections import defaultdict
 
 import numpy as np
 import pandas as pd
 from scipy.stats import zscore
 
 from src.prioritization.base import PrioritizationModel
+from src.prioritization.utils import combine_stats
 
 
 class StudentPrioritizationModel(PrioritizationModel, ABC):
@@ -31,135 +33,41 @@ class StudentPrioritizationModel(PrioritizationModel, ABC):
         pass
 
 
-class StudentCharacteristicModel(StudentPrioritizationModel):
-    """Prioritize defects a student makes with a statistically significant frequency."""
-
-    def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
-        """Initialize the model."""
-        super().__init__(items, defects, *args, **kwargs)
-        self.user_data = pd.DataFrame(columns=["submissions"])
-        self.user_defect_counts = pd.DataFrame(columns=self.defects.index, dtype=int)
-        self.user_z_scores = pd.DataFrame(columns=self.defects.index)
-
-    def _calculate_stats(self):
-        """Calculate user frequencies and z-scores."""
-        if self.user_data.empty:
-            self.user_z_scores = pd.DataFrame(columns=self.defects.index)
-            return
-
-        user_defect_freqs = (
-            self.user_defect_counts.divide(self.user_data["submissions"], axis=0).astype(float).fillna(0.0)
-        )
-        temp_z_scores = user_defect_freqs.apply(lambda col: zscore(col, nan_policy="omit"))
-        self.user_z_scores = temp_z_scores.reindex(columns=self.defects.index, fill_value=0).fillna(0)
-
-    def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
-        """Prioritize defects."""
-        user_id = submission["user"]
-        if user_id not in self.user_z_scores.index:
-            return pd.Series(0, index=defect_counts.index)
-
-        priorities = self.user_z_scores.loc[user_id]
-        return self._apply_scores(priorities.abs().fillna(0), defect_counts)
-
-    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
-        """Update the model's state with a batch of new submissions."""
-        submissions, defect_counts = self._handle_update_input(submissions, defect_counts)
-
-        submissions_by_user = submissions.groupby("user")
-
-        for user_id, user_submissions in submissions_by_user:
-            self.user_data.loc[user_id, "submissions"] = self.user_data.get("submissions", {}).get(user_id, 0) + len(
-                user_submissions
-            )
-
-            defect_counts_for_user = defect_counts.loc[user_submissions.index]
-            defect_presence_sum = (defect_counts_for_user > 0).astype(int).sum()
-
-            if user_id not in self.user_defect_counts.index:
-                self.user_defect_counts.loc[user_id] = defect_presence_sum
-            else:
-                self.user_defect_counts.loc[user_id] = self.user_defect_counts.loc[user_id].add(
-                    defect_presence_sum, fill_value=0
-                )
-
-        self._calculate_stats()
-
-        return self
-
-    def reset_model(self) -> PrioritizationModel:
-        """Reset the model's internal state to its initial configuration."""
-        self.user_data = pd.DataFrame(columns=["submissions"])
-        self.user_defect_counts = pd.DataFrame(columns=self.defects.index, dtype=int)
-        self.user_z_scores = pd.DataFrame(columns=self.defects.index)
-
-        return self
-
-    def get_model_description(self) -> str:
-        """Return a human-readable description of the model's logic."""
-        return "Prioritizes defects a student makes with a statistically significant frequency (z-score)."
-
-    def get_measure_name(self) -> str:
-        """Return a short, descriptive name of the model's measure (e.g., 'Frequency')."""
-        return "Z-Score"
-
-    def get_measure_description(self) -> str:
-        """Return a human readable description of the model output (e.g. 'Commonality')."""
-        return "Student-Defect Characteristic Scores"
-
-    def get_model_weights(self) -> pd.DataFrame:
-        """Return the pre-computed student-defect z-score matrix."""
-        return self.user_z_scores
-
-
 class StudentFrequencyModel(StudentPrioritizationModel):
     """Prioritizes defects based on a student's past frequency of making them."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
         """Initialize the model."""
         super().__init__(items, defects, *args, **kwargs)
-        self.user_data = pd.Series(dtype=int)
-        self.user_defect_counts = pd.DataFrame(columns=self.defects.index, dtype=int)
-        self.user_defect_freqs = pd.DataFrame(columns=self.defects.index)
+        self.user_submissions = defaultdict(lambda: 0)
+        self.user_defect_counts = defaultdict(lambda: pd.Series(0, index=self.defects.index, dtype=int))
+        self.user_defect_freqs = pd.DataFrame(columns=self.defects.index, dtype=float)
 
-    def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
+    def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Prioritize defects."""
-        user_id = submission["user"]
+        try:
+            return self.user_defect_freqs.loc[submission["user"]]
+        except KeyError:
+            return pd.Series(0, index=self.defects.index, dtype=float)
 
-        if user_id not in self.user_defect_freqs.index:
-            return pd.Series(0, index=defect_counts.index)
-
-        priorities = self.user_defect_freqs.loc[user_id]
-        return self._apply_scores(priorities.fillna(0), defect_counts)
-
-    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
+    def _update_weights(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
         """Update the model's state with a batch of new submissions."""
-        submissions, defect_counts = self._handle_update_input(submissions, defect_counts)
+        defect_presence = (defect_counts > 0).astype(int)
+        user_histories = defect_presence.groupby(submissions["user"])
 
-        submissions_by_user = submissions.groupby("user")
+        for user_id, user_history in user_histories:
+            self.user_submissions[user_id] += len(user_history)
+            self.user_defect_counts[user_id] += user_history.sum()
 
-        for user_id, user_submissions in submissions_by_user:
-            self.user_data.loc[user_id] = self.user_data.get(user_id, 0) + len(user_submissions)
-
-            defect_counts_for_user = defect_counts.loc[user_submissions.index]
-            defect_presence_sum = (defect_counts_for_user > 0).astype(int).sum()
-
-            if user_id not in self.user_defect_counts.index:
-                self.user_defect_counts.loc[user_id] = defect_presence_sum
-            else:
-                self.user_defect_counts.loc[user_id] = self.user_defect_counts.loc[user_id].add(
-                    defect_presence_sum, fill_value=0
-                )
-
-        self.user_defect_freqs = self.user_defect_counts.divide(self.user_data, axis=0).fillna(0)
-
-        return self
+        self.user_defect_freqs = pd.DataFrame.from_dict(self.user_defect_counts, orient="index").divide(
+            pd.Series(self.user_submissions).replace(0, 1), axis=0
+        )
 
     def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
-        self.user_data = pd.Series(dtype=int)
-        self.user_defect_counts = pd.DataFrame(columns=self.defects.index, dtype=int)
-        self.user_defect_freqs = pd.DataFrame(columns=self.defects.index)
+        self.user_submissions = defaultdict(lambda: 0)
+        self.user_defect_counts = defaultdict(lambda: pd.Series(0, index=self.defects.index, dtype=int))
+        self.user_defect_freqs = pd.DataFrame(columns=self.defects.index, dtype=float)
 
         return self
 
@@ -180,38 +88,90 @@ class StudentFrequencyModel(StudentPrioritizationModel):
         return "Prioritizes defects based on a student's past frequency of making them."
 
 
+class StudentCharacteristicModel(StudentFrequencyModel):
+    """Prioritize defects a student makes with a statistically significant frequency."""
+
+    def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
+        """Initialize the model."""
+        super().__init__(items, defects, *args, **kwargs)
+        self.global_samples = pd.Series(0, index=self.defects.index, dtype=int)
+        self.global_mean = pd.Series(0, index=self.defects.index, dtype=int)
+        self.global_var = pd.Series(0, index=self.defects.index, dtype=int)
+
+        self.user_z_scores = pd.DataFrame(columns=self.defects.index, dtype=float)
+
+    def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
+        """Prioritize defects."""
+        try:
+            return self.user_z_scores.loc[submission["user"]]
+        except KeyError:
+            return pd.Series(0, index=self.defects.index, dtype=float)
+
+    def _update_weights(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
+        """Update the model's state with a batch of new submissions."""
+        super()._update_weights(submissions, defect_counts)
+
+        presence = (defect_counts > 0).astype(int)
+
+        new_mean = presence.mean()
+        new_var = presence.var(ddof=0, skipna=True).fillna(0)
+
+        self.global_samples, self.global_mean, self.global_var = combine_stats(
+            presence.shape[0], new_mean, new_var, self.global_samples, self.global_mean, self.global_var
+        )
+
+        self.user_z_scores = self.user_defect_freqs - self.global_mean / self.global_var.pow(0.5).replace(0, 1)
+
+    def reset_model(self) -> PrioritizationModel:
+        """Reset the model's internal state to its initial configuration."""
+        super().reset_model()
+        self.global_samples = pd.Series(0, index=self.defects.index, dtype=int)
+        self.global_mean = pd.Series(0, index=self.defects.index, dtype=int)
+        self.global_var = pd.Series(0, index=self.defects.index, dtype=int)
+
+        self.user_z_scores = pd.DataFrame(columns=self.defects.index, dtype=float)
+
+        return self
+
+    def get_model_description(self) -> str:
+        """Return a human-readable description of the model's logic."""
+        return "Prioritizes defects a student makes with a statistically significant frequency (z-score)."
+
+    def get_measure_name(self) -> str:
+        """Return a short, descriptive name of the model's measure (e.g., 'Frequency')."""
+        return "Z-Score"
+
+    def get_measure_description(self) -> str:
+        """Return a human readable description of the model output (e.g. 'Commonality')."""
+        return "Student-Defect Characteristic Scores"
+
+    def get_model_weights(self) -> pd.DataFrame:
+        """Return the pre-computed student-defect z-score matrix."""
+        return self.user_z_scores
+
+
 class StudentEncounteredBeforeModel(StudentPrioritizationModel):
     """Prioritizes defects that a student has encountered recently."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
         """Initialize the model."""
         super().__init__(items, defects, *args, **kwargs)
-        self.user_counters = {}
+        self.user_counters = defaultdict(lambda: pd.Series(np.nan, index=self.defects.index, dtype=int))
+        self.user_weights = pd.DataFrame(columns=self.defects.index, dtype=float)
 
-    def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
+    def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Prioritize defects based on how recently they were encountered."""
-        user_id = submission["user"]
+        try:
+            return self.user_weights.loc[submission["user"]]
+        except KeyError:
+            return pd.Series(0, index=self.defects.index, dtype=float)
 
-        if user_id not in self.user_counters:
-            return pd.Series(0, index=defect_counts.index)
-
-        scores = self.user_counters[user_id]
-        priorities = (1 / scores).fillna(0.0)
-
-        return self._apply_scores(priorities, defect_counts)
-
-    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
+    def _update_weights(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
         """Update the model's state with a batch of new submissions."""
-        submissions, defect_counts = self._handle_update_input(submissions, defect_counts)
-
         defect_presence = defect_counts > 0
-
         user_histories = defect_presence.groupby(submissions["user"])
 
         for user_id, user_history in user_histories:
-            if user_id not in self.user_counters:
-                self.user_counters[user_id] = pd.Series(None, index=self.defects.index, dtype=int)
-
             counter = self.user_counters[user_id]
 
             for _, defect_presence in user_history.iterrows():
@@ -220,21 +180,18 @@ class StudentEncounteredBeforeModel(StudentPrioritizationModel):
 
             self.user_counters[user_id] = counter
 
-        return self
+        self.user_weights = (1 / pd.DataFrame.from_dict(self.user_counters, orient="index")).fillna(0.0)
 
     def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
-        self.user_counters = {}
+        self.user_counters = defaultdict(lambda: pd.Series(np.nan, index=self.defects.index, dtype=int))
+        self.user_weights = pd.DataFrame(columns=self.defects.index, dtype=float)
 
         return self
 
     def get_model_weights(self) -> pd.DataFrame:
         """Return the inverted user counters as a DataFrame."""
-        if not self.user_counters:
-            return pd.DataFrame(columns=self.defects.index)
-
-        weights_df = pd.DataFrame.from_dict(self.user_counters, orient="index")
-        return 1 / weights_df.reindex(columns=self.defects.index, fill_value=0)
+        return self.user_weights
 
     def get_measure_name(self) -> str:
         """Return a precise, short description of the model's output."""
@@ -250,48 +207,39 @@ class StudentEncounteredBeforeModel(StudentPrioritizationModel):
 
 
 class DefectMultiplicityModel(PrioritizationModel):
-    """Prioritizes defects based on how many times they appear in a submission, normalized by global statistics."""
+    """Prioritizes defects based on how many times they appear in a submission, normalized."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
         """Initialize the model."""
         super().__init__(items, defects, *args, **kwargs)
-        self.all_submissions = pd.DataFrame()
-        self.all_defect_counts = pd.DataFrame(columns=self.defects.index, dtype=int)
+        self.n_samples = pd.Series(0, index=self.defects.index, dtype=int)
+        self.mean = pd.Series(0, index=self.defects.index, dtype=int)
+        self.var = pd.Series(0, index=self.defects.index, dtype=int)
 
-    def _calculate_stats(self):
-        """Calculate global mean and std from all submissions seen so far."""
-        if self.all_defect_counts.empty:
-            self.global_means = pd.Series(0, index=self.defects.index)
-            self.global_stds = pd.Series(1, index=self.defects.index)
-        else:
-            self.global_means = self.all_defect_counts.mean()
-            self.global_stds = self.all_defect_counts.std().replace(0, 1)
-
-    def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
+    def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Prioritize defects based on normalized multiplicity."""
-        aligned_defect_counts = defect_counts.reindex(self.global_means.index, fill_value=0)
+        scores = (defect_counts - self.mean) / self.var.pow(0.5).replace(0, 1)
+        scores = scores.where(self.n_samples >= 2, 0)
+        return scores.reindex(defect_counts.index)
 
-        normalized_counts = (aligned_defect_counts - self.global_means) / self.global_stds
-
-        return self._apply_scores(normalized_counts.abs().astype(float).fillna(0), defect_counts)
-
-    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
+    def _update_weights(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
         """Update the model's state with a batch of new submissions."""
-        submissions, defect_counts = self._handle_update_input(submissions, defect_counts)
+        present = (defect_counts > 0).astype(int)
+        encountered = present.sum(axis=0)
+        instances = defect_counts.sum(axis=0)
 
-        self.all_submissions = pd.concat([self.all_submissions, submissions])
-        self.all_defect_counts = pd.concat(
-            [self.all_defect_counts, defect_counts.reindex(columns=self.defects.index, fill_value=0)]
+        new_mean = instances / encountered.replace(0, 1)
+        new_var = defect_counts.mask(~present.astype(bool)).var(axis=0, ddof=0, skipna=True).astype(float).fillna(0.0)
+
+        self.n_samples, self.mean, self.var = combine_stats(
+            encountered, new_mean, new_var, self.n_samples, self.mean, self.var
         )
-
-        self._calculate_stats()
-
-        return self
 
     def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
-        self.all_submissions = pd.DataFrame()
-        self.all_defect_counts = pd.DataFrame(columns=self.defects.index, dtype=int)
+        self.n_samples = pd.Series(0, index=self.defects.index, dtype=int)
+        self.mean = pd.Series(0, index=self.defects.index, dtype=int)
+        self.var = pd.Series(0, index=self.defects.index, dtype=int)
 
         return self
 
@@ -313,4 +261,4 @@ class DefectMultiplicityModel(PrioritizationModel):
 
     def get_model_weights(self) -> pd.DataFrame:
         """Return the pre-computed weight matrix for analysis."""
-        return pd.concat([self.global_means, self.global_stds], axis=1)
+        return pd.concat([self.mean, self.var**0.5], axis=1)

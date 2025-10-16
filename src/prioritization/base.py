@@ -12,6 +12,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.special import softmax
 
 
 class PrioritizationModel(ABC):
@@ -33,6 +34,17 @@ class PrioritizationModel(ABC):
         self.defects = defects
 
     @abstractmethod
+    def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series):
+        """Calculate prioritiy scores for a single submission.
+
+        Args:
+            submission: A Series with information about a single submission - includes task id, user id, etc.
+            defect_counts: A Series of the number of times each defect is present in the submission.
+        Returns:
+            A Series of scores for each defect. The returned Series should have the same index as `defects`.
+        """
+        raise NotImplementedError
+
     def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Prioritize defects for a single submission.
 
@@ -42,6 +54,14 @@ class PrioritizationModel(ABC):
         Returns:
             A Series of priorities for each defect (Higher is more important, -1 indicates the defect is not present).
         """
+        scores = self._calculate_scores(submission, defect_counts).loc[defect_counts > 0]
+        if scores.empty:
+            return pd.Series(0, index=self.defects.index, dtype=float)
+        scaled_scores = pd.Series(softmax(scores), index=scores.index)
+        return scaled_scores.reindex(self.defects.index, fill_value=0.0)
+
+    def _update_weights(self, submissions: pd.DataFrame, weights: pd.DataFrame):
+        """Update the model's internal state with a batch of new submissions."""
         pass
 
     def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
@@ -50,25 +70,17 @@ class PrioritizationModel(ABC):
 
         This method does nothing for stateless models.
         """
+        if isinstance(submissions, pd.Series):
+            submissions = pd.DataFrame([submissions])
+            defect_counts = pd.DataFrame([defect_counts])
+
+        self._update_weights(submissions, defect_counts)
+
         return self
 
     def reset_model(self):
         """Reset the model's internal state to its initial configuration."""
         return self
-
-    def _apply_scores(self, scores: pd.Series, defect_counts: pd.Series) -> pd.Series:
-        """Apply scores to defects, filtering out those not present in the submission."""
-        scores = scores.loc[defect_counts.index]  # Align scores and counts
-        scores[scores < 0] = 0  # Avoid negative priorities for present defects
-        scores[defect_counts <= 0] = -1  # Missing defects get negative priority
-        return scores
-
-    def _handle_update_input(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
-        if isinstance(submissions, pd.Series):
-            submissions = pd.DataFrame([submissions])
-            defect_counts = pd.DataFrame([defect_counts])
-
-        return submissions, defect_counts
 
     # --- Introspection Methods ---
     def get_context_type(self) -> str:

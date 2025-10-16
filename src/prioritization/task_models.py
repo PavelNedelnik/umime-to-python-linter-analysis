@@ -12,6 +12,7 @@ import pandas as pd
 from scipy.stats import zscore
 
 from src.prioritization.base import PrioritizationModel
+from src.prioritization.utils import combine_stats
 
 
 class TaskPrioritizationModel(PrioritizationModel, ABC):
@@ -32,29 +33,27 @@ class TaskCommonModel(TaskPrioritizationModel):
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
         """Initialize the model with shared data."""
         super().__init__(items, defects, *args, **kwargs)
-        self.task_frequencies = pd.DataFrame(columns=self.defects.index, dtype=float)
+        self.n_samples = pd.Series(0, index=self.items.index, dtype=int)
+        self.task_defect_freqs = pd.DataFrame(0, index=self.items.index, columns=self.defects.index, dtype=float)
 
-    def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
+    def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Prioritize defects."""
-        task_id = submission["item"]
-        if task_id not in self.task_frequencies.index:
-            return pd.Series(0, index=defect_counts.index)
+        return self.task_defect_freqs.loc[submission["item"]]
 
-        commonality_scores = self.task_frequencies.loc[task_id]
-        return self._apply_scores(commonality_scores, defect_counts)
-
-    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
+    def _update_weights(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
         """Update the model's state with a batch of new submissions."""
-        submissions, defect_counts = self._handle_update_input(submissions, defect_counts)
+        old_total = self.task_defect_freqs.multiply(self.n_samples, axis=0)
+        new_samples = submissions["item"].value_counts().reindex(self.items.index, fill_value=0)
+        new_total = (defect_counts > 0).groupby(submissions["item"]).mean()
+        new_total = new_total.multiply(new_samples, axis=0).fillna(0)
 
-        task_freqs = (defect_counts > 0).groupby(submissions["item"]).mean()
-        self.task_frequencies = self.task_frequencies.add(task_freqs, fill_value=0)
-
-        return self
+        self.n_samples += new_samples
+        self.task_defect_freqs = (old_total + new_total).divide(self.n_samples.replace(0, 1), axis=0)
 
     def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
-        self.task_frequencies = pd.DataFrame(columns=self.defects.index, dtype=float)
+        self.n_samples = pd.Series(0, index=self.items.index, dtype=float)
+        self.task_defect_freqs = pd.DataFrame(0, index=self.items.index, columns=self.defects.index, dtype=float)
 
         return self
 
@@ -68,59 +67,58 @@ class TaskCommonModel(TaskPrioritizationModel):
 
     def get_model_description(self) -> str:
         """Return a human-readable description of the model's logic."""
-        return "Prioritizes defects based on their average frequency in a task."
+        return "Prioritizes defects based on their average frequency in the task."
 
     def get_model_weights(self) -> pd.DataFrame:
         """Return the pre-computed task-defect frequency matrix."""
-        return self.task_frequencies
+        return self.task_defect_freqs
 
 
-class TaskCharacteristicModel(TaskPrioritizationModel):
+class TaskCharacteristicModel(TaskCommonModel):
     """Prioritizes defects that are unusually common for a given task."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
         """Initialize the model with shared data."""
         super().__init__(items, defects, *args, **kwargs)
-        self.task_freqs = pd.DataFrame(columns=self.defects.index, dtype=float)
-        self.task_z_scores = pd.DataFrame(columns=self.defects.index)
+        self.global_samples = pd.Series(0, index=self.defects.index, dtype=int)
+        self.global_mean = pd.Series(0, index=self.defects.index, dtype=int)
+        self.global_var = pd.Series(0, index=self.defects.index, dtype=int)
 
-    def _calculate_stats(self):
-        """Calculate z-scores for all task frequencies."""
-        self.task_z_scores = self.task_freqs.apply(lambda col: zscore(col, nan_policy="omit")).fillna(0)
+        self.task_z_scores = pd.DataFrame(0, index=self.items.index, columns=self.defects.index, dtype=float)
 
-    def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
+    def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Prioritize defects."""
-        task_id = submission["item"]
-        if task_id not in self.task_z_scores.index:
-            return pd.Series(0, index=defect_counts.index)
+        return self.task_z_scores.loc[submission["item"]]
 
-        priorities = self.task_z_scores.loc[task_id]
-        return self._apply_scores(priorities.abs().fillna(0), defect_counts)
-
-    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
+    def _update_weights(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
         """Update the model's state with a batch of new submissions."""
-        submissions, defect_counts = self._handle_update_input(submissions, defect_counts)
+        super()._update_weights(submissions, defect_counts)
 
-        if isinstance(submissions, pd.Series):
-            submissions = pd.DataFrame([submissions])
-            defect_counts = pd.DataFrame([defect_counts])
+        presence = (defect_counts > 0).astype(int)
 
-        task_freqs_new = (defect_counts > 0).groupby(submissions["item"]).mean()
-        self.task_freqs = self.task_freqs.add(task_freqs_new, fill_value=0)
-        self._calculate_stats()
+        new_mean = presence.mean()
+        new_var = presence.var(ddof=0, skipna=True).fillna(0)
 
-        return self
+        self.global_samples, self.global_mean, self.global_var = combine_stats(
+            presence.shape[0], new_mean, new_var, self.global_samples, self.global_mean, self.global_var
+        )
+
+        self.task_z_scores = self.task_defect_freqs - self.global_mean / self.global_var.pow(0.5).replace(0, 1)
 
     def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
-        self.task_freqs = pd.DataFrame(columns=self.defects.index, dtype=float)
-        self.task_z_scores = pd.DataFrame(columns=self.defects.index)
+        super().reset_model()
+        self.global_samples = pd.Series(0, index=self.defects.index, dtype=int)
+        self.global_mean = pd.Series(0, index=self.defects.index, dtype=int)
+        self.global_var = pd.Series(0, index=self.defects.index, dtype=int)
+
+        self.task_z_scores = pd.DataFrame(0, index=self.items.index, columns=self.defects.index, dtype=float)
 
         return self
 
     def get_measure_name(self) -> str:
         """Return a precise, short description of the model's output."""
-        return "Z-Score"
+        return "Relative Frequency Z-Score"
 
     def get_measure_description(self) -> str:
         """Return a human readable description of the model output."""
