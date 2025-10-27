@@ -32,6 +32,7 @@ class PrioritizationModel(ABC):
         """
         self.items = items
         self.defects = defects
+        self.thresholds = np.array([])
 
     @abstractmethod
     def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series):
@@ -45,6 +46,7 @@ class PrioritizationModel(ABC):
         """
         raise NotImplementedError
 
+    # --- Prioritization ---
     def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Prioritize defects for a single submission.
 
@@ -52,16 +54,42 @@ class PrioritizationModel(ABC):
             submission: A Series with information about a single submission - includes task id, user id, etc.
             defect_counts: A Series of the number of times each defect is present in the submission.
         Returns:
-            A Series of priorities for each defect (Higher is more important, -1 indicates the defect is not present).
+            A Series of priorities for each defect (Higher is more important, 0 indicates the defect should not be explained to the student).
         """
-        scores = self._calculate_scores(submission, defect_counts).loc[defect_counts > 0]
-        if scores.empty:
+        present = defect_counts > 0
+        if not present.any():
             return pd.Series(0, index=self.defects.index, dtype=float)
+
+        scores = self._calculate_scores(submission, defect_counts).loc[present]
         scaled_scores = pd.Series(softmax(scores), index=scores.index)
         return scaled_scores.reindex(self.defects.index, fill_value=0.0)
 
+    # --- Discretization ---
+    def discretize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
+        """Return discretized priority labels for a single submission.
+
+        Args:
+            submission: A Series with information about a single submission - includes task id, user id, etc.
+            defect_counts: A Series of the number of times each defect is present in the submission.
+        Returns:
+            A Series of discretized priority labels for each defect ().
+        """
+        present = defect_counts > 0
+        if not present.any():
+            return pd.Series(0, index=self.defects.index, dtype=float)
+
+        scores = self._calculate_scores(submission, defect_counts).loc[present]
+        levels = pd.Series(np.digitize(scores.values, self.thresholds), index=scores.index)
+        return levels.reindex(self.defects.index)
+
+    # --- Model Training Methods ---
     def _update_weights(self, submissions: pd.DataFrame, weights: pd.DataFrame):
         """Update the model's internal state with a batch of new submissions."""
+        pass
+
+    @abstractmethod
+    def _calculate_thresholds(self):
+        """Calculate and store discretization thresholds based on the distribution of model weights."""
         pass
 
     def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
@@ -76,10 +104,13 @@ class PrioritizationModel(ABC):
 
         self._update_weights(submissions, defect_counts)
 
+        self._calculate_thresholds()
+
         return self
 
     def reset_model(self):
         """Reset the model's internal state to its initial configuration."""
+        self.thresholds = np.array([])
         return self
 
     # --- Introspection Methods ---
@@ -106,6 +137,10 @@ class PrioritizationModel(ABC):
         """Return the model's pre-computed weight matrix for analysis."""
         return None
 
+    def get_model_thresholds(self) -> np.array:
+        """Return the model's pre-computed discretization thresholds for analysis."""
+        return self.thresholds
+
     # --- Save/Load Functionality ---
     def save(self, path: Path | str):
         """Save the model's state to a file using pickle."""
@@ -124,3 +159,52 @@ class PrioritizationModel(ABC):
         if not isinstance(obj, cls):
             raise TypeError(f"Pickle does not contain a valid {cls.__name__} instance.")
         return obj
+
+
+class StudentPrioritizationModel(PrioritizationModel, ABC):
+    """
+    Provide a base for all student-pure prioritization models.
+
+    These models have a bulk `update` method for learning and
+    must return a student-defect weight matrix.
+    """
+
+    def get_context_type(self) -> str:
+        """Return the type of context the model uses."""
+        return "student"
+
+
+class TaskPrioritizationModel(PrioritizationModel, ABC):
+    """
+    Provide a base class for models that prioritize based on task context.
+
+    These models calculate a weight matrix where rows are tasks and columns are defects.
+    """
+
+    def get_context_type(self) -> str:
+        """Return the type of context the model uses."""
+        return "task"
+
+
+class FrequencyBasedModel(PrioritizationModel, ABC):
+    """Base class for models using frequency-like scores (0 to 1, skewed)."""
+
+    def _calculate_thresholds(self):
+        """Set fixed threshold boundaries for the 1 to 5 scale."""
+        self.thresholds = np.array([0.05, 0.1, 0.25, 0.5])
+
+    def discretize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
+        """Discretize scores into levels 1-5 using the fixed thresholds."""
+        return super().discretize(submission, defect_counts) + 1
+
+
+class ZScoreBasedModel(PrioritizationModel, ABC):
+    """Base class for models using Z-score like scores (symmetric around 0)."""
+
+    def _calculate_thresholds(self):
+        """Set fixed threshold boundaries for the -2 to +2 scale."""
+        self.thresholds = np.array([-2.0, -1.0, 1.0, 2.0])
+
+    def discretize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
+        """Discretize scores into levels -2-2 using the fixed thresholds."""
+        return super().discretize(submission, defect_counts) - 2

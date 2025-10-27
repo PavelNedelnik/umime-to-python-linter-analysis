@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from src.prioritization.base import PrioritizationModel
@@ -16,6 +17,7 @@ class CurrentlyTaughtPrioritizer(TaskPrioritizationModel):
         super().__init__(items, defects, *args, **kwargs)
         self.data_path = data_path
         self.task_weights = self._load_llm_judgments()
+        self.thresholds = np.array([1])
 
     def _load_llm_judgments(self) -> pd.DataFrame:
         """Load LLM data and prepare the task-weights matrix."""
@@ -26,23 +28,24 @@ class CurrentlyTaughtPrioritizer(TaskPrioritizationModel):
         task_weights = task_weights.reindex(index=self.items.index, columns=self.defects.index, fill_value=0)
         return task_weights
 
-    def prioritize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
-        """Prioritize defects based on pre-computed LLM weights."""
+    def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
+        """Return the pre-computed LLM weights for the given task, aligned to all defects."""
         task_id = submission["item"]
         if task_id not in self.task_weights.index:
-            return pd.Series(0, index=defect_counts.index)
-        llm_scores = self.task_weights.loc[task_id]
-        return self._apply_scores(llm_scores, defect_counts)
+            return pd.Series(0, index=self.defects.index)
+        return self.task_weights.loc[task_id]
 
-    def update(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
-        """Update is a no-op as LLM judgments are static."""
-        return self
+    def _update_weights(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
+        """Do nothing. Judgmenets are static."""
+        pass
+
+    def _calculate_thresholds(self):
+        """Do nothing. The model has static thresholds."""
+        pass
 
     def reset_model(self) -> PrioritizationModel:
-        """Reset the model's state by re-loading the judgments."""
-        self.task_weights = self._load_llm_judgments()
-
-        return self
+        """Do nothing. The model shouldn't ever change state."""
+        pass
 
     def get_measure_name(self) -> str:
         """Return a precise, short description of the model's output."""
@@ -52,11 +55,6 @@ class CurrentlyTaughtPrioritizer(TaskPrioritizationModel):
         """Return a human readable description of the model output."""
         return "LLM Judgments on Currently Taught Concepts"
 
-    def get_model_description(self) -> str:
-        """Return a human-readable description of the model's logic."""
-        return "Prioritizes defects based on static LLM judgments about 'currently taught' concepts."
-
     def get_model_weights(self) -> pd.DataFrame:
         """Return the pre-computed task-defect LLM weight matrix."""
-        return self.task_weights
         return self.task_weights

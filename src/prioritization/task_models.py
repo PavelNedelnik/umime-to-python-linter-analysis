@@ -4,30 +4,13 @@ This module contains prioritization models that focus purely on task context.
 These models calculate a weight matrix where rows are tasks and columns are defects.
 """
 
-from abc import ABC
-from pathlib import Path
-
-import numpy as np
 import pandas as pd
-from scipy.stats import zscore
 
-from src.prioritization.base import PrioritizationModel
+from src.prioritization.base import FrequencyBasedModel, PrioritizationModel, TaskPrioritizationModel, ZScoreBasedModel
 from src.prioritization.utils import combine_stats
 
 
-class TaskPrioritizationModel(PrioritizationModel, ABC):
-    """
-    Provide a base class for models that prioritize based on task context.
-
-    These models calculate a weight matrix where rows are tasks and columns are defects.
-    """
-
-    def get_context_type(self) -> str:
-        """Return the type of context the model uses."""
-        return "task"
-
-
-class TaskCommonModel(TaskPrioritizationModel):
+class TaskCommonModel(TaskPrioritizationModel, FrequencyBasedModel):
     """Prioritize defects based on how common they are for a given task."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
@@ -74,7 +57,7 @@ class TaskCommonModel(TaskPrioritizationModel):
         return self.task_defect_freqs
 
 
-class TaskCharacteristicModel(TaskCommonModel):
+class TaskCharacteristicModel(TaskCommonModel, ZScoreBasedModel):
     """Prioritizes defects that are unusually common for a given task."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):

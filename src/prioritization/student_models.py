@@ -4,36 +4,21 @@ This module contains prioritization models that focus on student-specific contex
 These models calculate a weight matrix where rows are students and columns are defects.
 """
 
-from abc import ABC, abstractmethod
 from collections import defaultdict
 
 import numpy as np
 import pandas as pd
-from scipy.stats import zscore
 
-from src.prioritization.base import PrioritizationModel
+from src.prioritization.base import (
+    FrequencyBasedModel,
+    PrioritizationModel,
+    StudentPrioritizationModel,
+    ZScoreBasedModel,
+)
 from src.prioritization.utils import combine_stats
 
 
-class StudentPrioritizationModel(PrioritizationModel, ABC):
-    """
-    Provide a base for all student-pure prioritization models.
-
-    These models have a bulk `update` method for learning and
-    must return a student-defect weight matrix.
-    """
-
-    def get_context_type(self) -> str:
-        """Return the type of context the model uses."""
-        return "student"
-
-    @abstractmethod
-    def get_model_weights(self) -> pd.DataFrame:
-        """Return the pre-computed student-defect weight matrix."""
-        pass
-
-
-class StudentFrequencyModel(StudentPrioritizationModel):
+class StudentFrequencyModel(StudentPrioritizationModel, FrequencyBasedModel):
     """Prioritizes defects based on a student's past frequency of making them."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
@@ -88,7 +73,7 @@ class StudentFrequencyModel(StudentPrioritizationModel):
         return "Prioritizes defects based on a student's past frequency of making them."
 
 
-class StudentCharacteristicModel(StudentFrequencyModel):
+class StudentCharacteristicModel(StudentFrequencyModel, ZScoreBasedModel):
     """Prioritize defects a student makes with a statistically significant frequency."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
@@ -150,7 +135,7 @@ class StudentCharacteristicModel(StudentFrequencyModel):
         return self.user_z_scores
 
 
-class StudentEncounteredBeforeModel(StudentPrioritizationModel):
+class StudentEncounteredBeforeModel(StudentPrioritizationModel, FrequencyBasedModel):
     """Prioritizes defects that a student has encountered recently."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
@@ -206,7 +191,7 @@ class StudentEncounteredBeforeModel(StudentPrioritizationModel):
         return "Prioritizes defects that a student has encountered recently."
 
 
-class DefectMultiplicityModel(PrioritizationModel):
+class DefectMultiplicityModel(StudentPrioritizationModel, ZScoreBasedModel):
     """Prioritizes defects based on how many times they appear in a submission, normalized."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
@@ -257,6 +242,11 @@ class DefectMultiplicityModel(PrioritizationModel):
 
     def get_model_description(self) -> str:
         """Return a human-readable description of the model's logic."""
+        return "Prioritizes defects by how unusually common they are in a submission, with adaptive global statistics."
+
+    def get_model_weights(self) -> pd.DataFrame:
+        """Return the pre-computed weight matrix for analysis."""
+        return pd.concat([self.mean, self.var**0.5], axis=1)
         return "Prioritizes defects by how unusually common they are in a submission, with adaptive global statistics."
 
     def get_model_weights(self) -> pd.DataFrame:
