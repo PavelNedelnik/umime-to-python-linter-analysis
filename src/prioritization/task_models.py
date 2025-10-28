@@ -57,7 +57,7 @@ class TaskCommonModel(TaskPrioritizationModel, FrequencyBasedModel):
         return self.task_defect_freqs
 
 
-class TaskCharacteristicModel(TaskCommonModel, ZScoreBasedModel):
+class TaskCharacteristicModel(ZScoreBasedModel, TaskCommonModel):
     """Prioritizes defects that are unusually common for a given task."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):

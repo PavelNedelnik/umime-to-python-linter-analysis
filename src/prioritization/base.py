@@ -203,7 +203,7 @@ class ZScoreBasedModel(PrioritizationModel, ABC):
 
     def _calculate_thresholds(self):
         """Set fixed threshold boundaries for the -2 to +2 scale."""
-        self.thresholds = np.array([-2.0, -1.0, 1.0, 2.0])
+        self.thresholds = np.array([-1.5, -0.5, 0.5, 1.5])
 
     def discretize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Discretize scores into levels -2-2 using the fixed thresholds."""
