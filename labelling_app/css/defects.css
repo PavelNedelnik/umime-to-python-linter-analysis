@@ -1,0 +1,320 @@
+/* General Body Styles */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    color: #333;
+    background-color: #f4f4f4; /* Muted light grey background */
+    padding: 0 20px; /* Added padding to avoid body touching edges */
+    box-sizing: border-box; /* Ensures padding and margins are accounted for */
+}
+
+/* Survey Description Section */
+.survey-description {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #e0e0e0; /* Muted grey background for description */
+    padding: 20px;
+    height: 33vh;
+    text-align: center;
+    border-radius: 8px; /* Rounded corners */
+}
+
+.survey-description h1 {
+    margin: 0;
+    font-size: 2em;
+    color: #333; /* Dark grey text for better contrast */
+}
+
+.survey-description p {
+    font-size: 1.1em;
+    margin: 10px 0;
+    color: #666; /* Lighter grey for body text */
+}
+
+/* Survey Question Section */
+.survey-question {
+    display: flex;
+    flex-grow: 1;
+    height: 67vh;
+    width: 100%;
+    flex-wrap: wrap; /* Ensures that items wrap in small screens */
+}
+
+/* User Submission Section */
+.user-submission-section {
+    width: 50%;
+    background-color: #e9ecef; /* Muted light grey background */
+    padding: 20px;
+    font-family: monospace;
+    box-sizing: border-box;
+    overflow: auto;
+    border-radius: 8px; /* Rounded corners */
+}
+
+.task-description {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: #f5f5f5; /* Lighter muted grey */
+    padding: 20px;
+    height: 10vh;
+    border-radius: 8px; /* Rounded corners */
+}
+
+.task-description h2 {
+    margin: 0;
+    font-size: 1.5em;
+    color: #333; /* Dark grey for heading */
+    text-align: center;
+}
+
+.task-description p {
+    font-size: 1em;
+    color: #777; /* Lighter grey for text */
+    text-align: left;
+}
+
+/* Defects Section */
+.defects-section {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Button Form Container */
+.button-form {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Button Styles */
+.button {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    font-size: 1em;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    height: 50%;
+    position: relative;
+    overflow: hidden;
+    background-color: #dcdcdc; /* Muted grey for buttons */
+    border-bottom: 10px solid #c0c0c0; /* Lighter grey border */
+    border-radius: 8px; /* Rounded corners */
+}
+
+.button h3 {
+    font-size: 1.5em;
+    margin: 0;
+    color: #333; /* Dark grey for heading */
+}
+
+.button p {
+    font-size: 1em;
+    margin-top: 10px;
+    color: #666; /* Lighter grey for text */
+    opacity: 0.8;
+}
+
+.button:hover {
+    opacity: 0.9;
+}
+
+.button h3:hover,
+.button p:hover {
+    opacity: 1;
+}
+
+/* Survey Container */
+.survey-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%; /* Ensuring container is full width */
+    margin: auto;
+}
+
+/* Survey Header */
+.survey-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Navigation Button Styles */
+.nav-button {
+    background-color: #dcdcdc; /* Muted grey */
+    color: #333;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-bottom: 20px;
+    transition: background-color 0.3s ease;
+}
+
+.nav-button:hover {
+    background-color: #c0c0c0; /* Slightly darker grey when hovered */
+}
+
+.nav-button:disabled {
+    background-color: #b0b0b0; /* Lighter grey for disabled */
+    cursor: not-allowed;
+}
+
+/* Return Button Hover */
+.return-button:hover {
+    background-color: #c0c0c0;
+}
+
+/* Survey Content */
+.survey-content {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    flex-wrap: wrap; /* Ensures content stacks on small screens */
+    gap: 20px; /* Adds space between items */
+}
+
+/* Task and Defects Sections Styling */
+.task-section,
+.defects-section {
+    width: 48%;
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    margin-bottom: 20px; /* Space between sections */
+    background-color: #f5f5f5; /* Light grey background */
+}
+
+/* Defect Fix Block */
+.defect-fix-block {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    gap: 20px;
+}
+
+/* Code Block Styling */
+.code-block {
+    flex: 1;
+    background-color: #f0f0f0; /* Light grey code block background */
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
+}
+
+/* Defect Button Styling */
+.defect-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.defect-button {
+    background-color: #dcdcdc; /* Muted grey button */
+    border: none;
+    padding: 15px;
+    text-align: left;
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 10px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    border-radius: 8px; /* Rounded corners */
+}
+
+.defect-button:hover {
+    background-color: #c0c0c0; /* Darker grey on hover */
+}
+
+.defect-content {
+    width: 100%;
+}
+
+.defect-button.unclickable {
+    pointer-events: none;
+}
+.defect-content-wrapper {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.defect-info {
+    flex: 3;
+}
+
+.defect-context {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f8f8f8;
+    border-top: 1px solid #ddd;
+    font-style: italic;
+}
+
+/* Highlighted Defect Button */
+.highlighted {
+    background-color: #d1d1d1; /* Soft muted grey background */
+    border: 2px solid #a8a8a8; /* Slightly darker grey border */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow for emphasis */
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+    /* Survey Description Section */
+    .survey-description {
+        height: auto;
+        padding: 15px;
+    }
+
+    /* Survey Question Section */
+    .survey-question {
+        height: auto;
+        flex-direction: column;
+    }
+
+    /* User Submission Section and Defects Section */
+    .user-submission-section,
+    .defects-section {
+        width: 100%;
+        padding: 10px;
+    }
+
+    /* Button Form */
+    .button-form {
+        height: auto;
+        margin-bottom: 20px;
+    }
+
+    /* Adjust layout for task-section and defects-section */
+    .task-section,
+    .defects-section {
+        width: 100%;
+        padding: 10px;
+    }
+
+    /* Adjust Button and Defect Button */
+    .button,
+    .defect-button {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}
