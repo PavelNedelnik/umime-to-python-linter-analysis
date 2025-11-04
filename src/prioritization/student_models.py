@@ -15,7 +15,7 @@ from src.prioritization.base import (
     StudentPrioritizationModel,
     ZScoreBasedModel,
 )
-from src.prioritization.utils import combine_stats
+from src.prioritization.utils import DefaultDictFactory, combine_stats
 
 
 class StudentFrequencyModel(StudentPrioritizationModel, FrequencyBasedModel):
@@ -24,8 +24,8 @@ class StudentFrequencyModel(StudentPrioritizationModel, FrequencyBasedModel):
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
         """Initialize the model."""
         super().__init__(items, defects, *args, **kwargs)
-        self.user_submissions = defaultdict(lambda: 0)
-        self.user_defect_counts = defaultdict(lambda: pd.Series(0, index=self.defects.index, dtype=int))
+        self.user_submissions = defaultdict(DefaultDictFactory(0))
+        self.user_defect_counts = defaultdict(DefaultDictFactory(pd.Series(0, index=self.defects.index, dtype=int)))
         self.user_defect_freqs = pd.DataFrame(columns=self.defects.index, dtype=float)
 
     def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
@@ -50,8 +50,8 @@ class StudentFrequencyModel(StudentPrioritizationModel, FrequencyBasedModel):
 
     def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
-        self.user_submissions = defaultdict(lambda: 0)
-        self.user_defect_counts = defaultdict(lambda: pd.Series(0, index=self.defects.index, dtype=int))
+        self.user_submissions = defaultdict(DefaultDictFactory(0))
+        self.user_defect_counts = defaultdict(DefaultDictFactory(pd.Series(0, index=self.defects.index, dtype=int)))
         self.user_defect_freqs = pd.DataFrame(columns=self.defects.index, dtype=float)
 
         return self
@@ -141,7 +141,7 @@ class StudentEncounteredBeforeModel(StudentPrioritizationModel, FrequencyBasedMo
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
         """Initialize the model."""
         super().__init__(items, defects, *args, **kwargs)
-        self.user_counters = defaultdict(lambda: pd.Series(np.nan, index=self.defects.index, dtype=int))
+        self.user_counters = defaultdict(DefaultDictFactory(pd.Series(np.nan, index=self.defects.index, dtype=int)))
         self.user_weights = pd.DataFrame(columns=self.defects.index, dtype=float)
 
     def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
@@ -169,7 +169,7 @@ class StudentEncounteredBeforeModel(StudentPrioritizationModel, FrequencyBasedMo
 
     def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
-        self.user_counters = defaultdict(lambda: pd.Series(np.nan, index=self.defects.index, dtype=int))
+        self.user_counters = defaultdict(DefaultDictFactory(pd.Series(np.nan, index=self.defects.index, dtype=int)))
         self.user_weights = pd.DataFrame(columns=self.defects.index, dtype=float)
 
         return self
