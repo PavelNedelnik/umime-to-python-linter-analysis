@@ -46,3 +46,7 @@ class SeverityModel(PrioritizationModel):
     def get_model_weights(self) -> pd.DataFrame:
         """Return a single-row matrix for consistency in analysis."""
         return self.severity_map.to_frame().T
+
+    def get_discretization_scale(self):
+        """Return the name of the model's discretization scale (e.g., '1-5')."""
+        return "1-5"

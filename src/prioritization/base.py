@@ -133,6 +133,11 @@ class PrioritizationModel(ABC):
         """Return a human readable description of the model output (e.g. 'Commonality')."""
         pass
 
+    @abstractmethod
+    def get_discretization_scale(self) -> str:
+        """Return the name of the model's discretization scale (e.g., '1-5')."""
+        pass
+
     def get_model_weights(self) -> pd.DataFrame:
         """Return the model's pre-computed weight matrix for analysis."""
         return None
@@ -197,6 +202,10 @@ class FrequencyBasedModel(PrioritizationModel, ABC):
         """Discretize scores into levels 1-5 using the fixed thresholds."""
         return super().discretize(submission, defect_counts) + 1
 
+    def get_discretization_scale(self) -> str:
+        """Return the name of the model's discretization scale (e.g., '1-5')."""
+        return "1-5"
+
 
 class ZScoreBasedModel(PrioritizationModel, ABC):
     """Base class for models using Z-score like scores (symmetric around 0)."""
@@ -208,3 +217,7 @@ class ZScoreBasedModel(PrioritizationModel, ABC):
     def discretize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Discretize scores into levels -2-2 using the fixed thresholds."""
         return super().discretize(submission, defect_counts) - 2
+
+    def get_discretization_scale(self) -> str:
+        """Return the name of the model's discretization scale (e.g., '-2-2')."""
+        return "-2-2"
