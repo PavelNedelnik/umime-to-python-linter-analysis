@@ -1,5 +1,7 @@
 """Utility functions."""
 
+from copy import deepcopy
+
 import pandas as pd
 
 
@@ -39,4 +41,4 @@ class DefaultDictFactory:
 
     def __call__(self):
         """Return the default value."""
-        return self.default_value
+        return deepcopy(self.default_value)
