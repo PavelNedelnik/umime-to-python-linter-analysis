@@ -5,7 +5,7 @@ import csv
 import random
 from pathlib import Path
 
-from .survey_logic import get_unanswered_questions, get_user_id, load_heuristics, render_context_table, save_answer
+from .survey_logic import *
 
 
 def show_survey_page(data_path: Path, form: cgi.FieldStorage):
@@ -61,17 +61,6 @@ def show_survey_page(data_path: Path, form: cgi.FieldStorage):
 # ---------------------------------------------------------------------
 
 
-def load_defects_for_submission(data_path: Path, submission_index: str):
-    """Load all defect entries for a given submission index."""
-    defects = []
-    with open(data_path / "defects.csv", mode="r", encoding="utf-8") as f:
-        reader = csv.DictReader(f, delimiter=";")
-        for row in reader:
-            if row["submission id"] == submission_index:
-                defects.append(row)
-    return defects
-
-
 def render_task_section(question: dict, defects: list, heuristics: list):
     """Render the left-hand column: task description, code, and context table."""
     print(f"""
@@ -94,6 +83,32 @@ def render_task_section(question: dict, defects: list, heuristics: list):
     """)
 
 
+def render_context_table(defects: list[dict], heuristics: list[dict]) -> str:
+    """Render an HTML table showing heuristic context for each defect."""
+    if not defects or not heuristics:
+        return "<p>No context available.</p>"
+
+    html = ['<table class="heuristics-table" style="width:100%; border-collapse: collapse;">']
+    html.append("<thead><tr><th class='cell cell-left'>Defect</th>")
+
+    for h in heuristics:
+        tooltip = f"{h['description']} (Scale: {h['scale']})" if h.get("description") else f"Scale: {h['scale']}"
+        html.append(f"<th class='cell' title='{tooltip}'>{h['name']}</th>")
+    html.append("</tr></thead><tbody>")
+
+    for defect in defects:
+        html.append(f"<tr><td class='cell cell-left'>{defect.get('name', '')}</td>")
+        for h in heuristics:
+            score = defect.get(h["name"], "")
+            label = map_score_to_label(score, h["scale"])
+            css_class = generate_css_class_name(label)
+            html.append(f"<td class='cell {css_class}'>{label}</td>")
+        html.append("</tr>")
+
+    html.append("</tbody></table>")
+    return "".join(html)
+
+
 def render_defects_section(defects: list, question_index: str):
     """Render the right-hand column with selectable defect buttons."""
     print("""
@@ -102,6 +117,9 @@ def render_defects_section(defects: list, question_index: str):
     """)
 
     for defect in defects:
+        code_example = defect.get("code example", "")
+        code_fix = defect.get("code fix example", "")
+
         print(f"""
             <button type='submit' name='choice' value='{defect["defect id"]}' class='defect-button'>
                 <div class="defect-content-wrapper">
@@ -110,10 +128,13 @@ def render_defects_section(defects: list, question_index: str):
                         <div class="defect-fix-block">
         """)
 
-        if defect["code example"]:
-            print(f'<pre class="code-block"><code>Example:\n{defect["code example"]}</code></pre>')
-        if defect["code fix example"]:
-            print(f'<pre class="code-block"><code>Fix:\n{defect["code fix example"]}</code></pre>')
+        if code_example:
+            safe_example = code_example.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            print(f'<pre class="code-block"><code>Example:\n{safe_example}</code></pre>')
+
+        if code_fix:
+            safe_fix = code_fix.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            print(f'<pre class="code-block"><code>Fix:\n{safe_fix}</code></pre>')
 
         print("""
                         </div> <!-- defect-fix-block -->

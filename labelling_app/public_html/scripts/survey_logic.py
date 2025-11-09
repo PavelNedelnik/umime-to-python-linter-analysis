@@ -159,32 +159,12 @@ def generate_css_class_name(label: str) -> str:
     return label.lower().replace(" ", "-").replace("/", "-").replace(".", "").replace(">", "gt").replace("<", "lt")
 
 
-# ---------------------------------------------------------------------
-# Rendering
-# ---------------------------------------------------------------------
-
-
-def render_context_table(defects: list[dict], heuristics: list[dict]) -> str:
-    """Render an HTML table showing heuristic context for each defect."""
-    if not defects or not heuristics:
-        return "<p>No context available.</p>"
-
-    html = ['<table class="heuristics-table" style="width:100%; border-collapse: collapse;">']
-    html.append("<thead><tr><th class='cell cell-left'>Defect</th>")
-
-    for h in heuristics:
-        tooltip = f"{h['description']} (Scale: {h['scale']})" if h.get("description") else f"Scale: {h['scale']}"
-        html.append(f"<th class='cell' title='{tooltip}'>{h['name']}</th>")
-    html.append("</tr></thead><tbody>")
-
-    for defect in defects:
-        html.append(f"<tr><td class='cell cell-left'>{defect.get('name', '')}</td>")
-        for h in heuristics:
-            score = defect.get(h["name"], "")
-            label = map_score_to_label(score, h["scale"])
-            css_class = generate_css_class_name(label)
-            html.append(f"<td class='cell {css_class}'>{label}</td>")
-        html.append("</tr>")
-
-    html.append("</tbody></table>")
-    return "".join(html)
+def load_defects_for_submission(data_path: Path, submission_index: str):
+    """Load all defect entries for a given submission index."""
+    defects = []
+    with open(data_path / "defects.csv", mode="r", encoding="utf-8") as f:
+        reader = csv.DictReader(f, delimiter=";")
+        for row in reader:
+            if row["submission id"] == submission_index:
+                defects.append(row)
+    return defects
