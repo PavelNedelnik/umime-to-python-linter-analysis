@@ -14,8 +14,12 @@ from scripts.results import show_results_page
 from scripts.survey import show_survey_page
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_PATH = BASE_DIR / "survey_data"
+DATA_PATH = BASE_DIR / "survey_data" / "ipython_0.0.0"
 CSS_PATH = BASE_DIR / "css/defects.css"
+
+# Ensure the file to collect responses exists
+with open(DATA_PATH / "responses.csv", mode="a", newline="", encoding="utf-8"):
+    pass
 
 # Ensure UTF-8 encoding
 sys.stdout.reconfigure(encoding="utf-8")
