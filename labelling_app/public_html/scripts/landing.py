@@ -4,21 +4,24 @@
 def show_landing_page():
     """Display the landing page HTML."""
     print("""
-        <div class="landing-container">
-            <div class="survey-header">
-                <h1>Beginner Code Quality Defects Survey</h1>
-                <p>This survey is designed to gather feedback from educators about common code quality defects that students encounter when writing beginner-level code.</p>
-                <p>Your feedback will help shape how automated tools like linters prioritize presenting messages to the user.</p>
-            </div>
-            <div class="buttons-container">
-                <!-- Button to participate in the survey -->
-                <a href="defects.py?page=survey" class="button-link">
-                    <button type="button" class="button">Participate in the Survey</button>
-                </a>
-                <!-- Button to view the results -->
-                <a href="defects.py?page=results" class="button-link">
-                    <button type="button" class="button">See Results</button>
-                </a>
-            </div>
-        </div>
-""")
+    <main class="landing-container">
+        <section class="survey-header">
+            <h1>Beginner Code Quality Defects Survey</h1>
+            <p>
+                Welcome! This survey gathers feedback from educators and reviewers
+                about <strong>common code quality defects</strong> that students encounter
+                in beginner-level programming submissions.
+            </p>
+            <p>
+                Your insights will help improve how automated tools — like linters and
+                tutoring systems — prioritize messages for students.
+            </p>
+        </section>
+
+        <section class="buttons-container">
+            <a href="defects.py?page=survey" class="nav-button large-button">Start the Survey</a>
+            <a href="defects.py?page=demo" class="nav-button large-button">View Example / Demo</a>
+            <a href="defects.py?page=results" class="nav-button large-button">See Results</a>
+        </section>
+    </main>
+    """)
