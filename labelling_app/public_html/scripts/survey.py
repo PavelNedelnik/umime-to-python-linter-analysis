@@ -12,11 +12,12 @@ def show_survey_page(data_path: Path, form: cgi.FieldStorage):
     """Display a survey question and handle recording the user's answer."""
     user_choice = form.getvalue("choice")
     question_id = form.getvalue("question_id")
+    user_comment = form.getvalue("comment", "").strip()
     user_id = get_user_id()
 
     # Record previous answer if available
     if user_choice:
-        save_answer(data_path, user_id, question_id, user_choice)
+        save_answer(data_path, user_id, question_id, user_choice, user_comment)
 
     # Determine next question
     questions = get_unanswered_questions(data_path, user_id)
@@ -43,7 +44,7 @@ def show_survey_page(data_path: Path, form: cgi.FieldStorage):
         <div class="survey-content">
     """)
 
-    # Left column (task + context)
+    # Left column (task + context + comment)
     render_task_section(question, defects, heuristics)
 
     # Right column (defects list)
@@ -77,9 +78,18 @@ def render_task_section(question: dict, defects: list, heuristics: list):
     """)
     relevant_defects = [d for d in defects if d["submission id"] == question["index"]]
     print(render_context_table(relevant_defects, heuristics))
+    print("</div> <!-- context-section -->")
+
+    print("</section> <!-- task-section -->")
+
+
+def render_comment_section():
+    """Render a comment text area for optional feedback."""
     print("""
-        </div> <!-- context-section -->
-        </section> <!-- task-section -->
+        <div class="comment-section">
+            <h3>Additional Comment (optional, will be recorded with the selected answer)</h3>
+            <textarea name="comment" rows="4" placeholder="Add any additional insights or notes here..." class="comment-box"></textarea>
+        </div>
     """)
 
 
@@ -110,16 +120,13 @@ def render_context_table(defects: list[dict], heuristics: list[dict]) -> str:
 
 
 def render_defects_section(defects: list, question_index: str):
-    """Render the right-hand column with selectable defect buttons."""
+    """Render the right-hand column with selectable defect buttons, side-by-side Example/Fix, and a comment box."""
     print("""
         <section class="defects-section">
             <form action='defects.py?page=survey' method='post' class='defect-form'>
     """)
 
     for defect in defects:
-        code_example = defect.get("code example", "")
-        code_fix = defect.get("code fix example", "")
-
         print(f"""
             <button type='submit' name='choice' value='{defect["defect id"]}' class='defect-button'>
                 <div class="defect-content-wrapper">
@@ -128,20 +135,22 @@ def render_defects_section(defects: list, question_index: str):
                         <div class="defect-fix-block">
         """)
 
-        if code_example:
-            safe_example = code_example.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-            print(f'<pre class="code-block"><code>Example:\n{safe_example}</code></pre>')
+        example_code = defect.get("code example", "")
+        fix_code = defect.get("code fix example", "")
 
-        if code_fix:
-            safe_fix = code_fix.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-            print(f'<pre class="code-block"><code>Fix:\n{safe_fix}</code></pre>')
+        if example_code:
+            print(f'<pre class="code-block">{example_code}</pre>')
+        if fix_code:
+            print(f'<pre class="code-block">{fix_code}</pre>')
 
-        print("""
+        print(""" 
                         </div> <!-- defect-fix-block -->
                     </div> <!-- defect-info -->
                 </div> <!-- defect-content-wrapper -->
             </button>
         """)
+
+    render_comment_section()
 
     print(f"""
                 <input type='hidden' name='question_id' value='{question_index}'>

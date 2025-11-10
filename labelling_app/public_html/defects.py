@@ -23,7 +23,7 @@ CSS_RELATIVE_PATH = "../css/defects.css"  # relative to /public_html
 responses_file = DATA_PATH / "responses.csv"
 if not responses_file.exists():
     with open(responses_file, mode="a", newline="", encoding="utf-8") as f:
-        f.write("respondent;submission id;answer\n")
+        f.write("respondent;submission id;answer;comment\n")
 
 # --- UTF-8 output ---
 sys.stdout.reconfigure(encoding="utf-8")

@@ -27,7 +27,6 @@ SCALE_LABELS = {
     },
 }
 
-
 # ---------------------------------------------------------------------
 # User tracking and session handling
 # ---------------------------------------------------------------------
@@ -86,20 +85,20 @@ def get_unanswered_questions(data_path: Path, user_id: str) -> list[dict]:
     return questions
 
 
-def save_answer(data_path: Path, user_id: str, question_id: str, answer: str) -> None:
-    """Append a user response safely to responses.csv."""
-    responses_path = data_path / "responses.csv"
-    file_exists = responses_path.exists()
+def save_answer(data_path: Path, user_id: str, question_id: str, answer: str, comment: str = ""):
+    """Save the user's response (and optional comment) to the local log."""
+    responses_file = data_path / "responses.csv"
 
-    with open(responses_path, mode="a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, delimiter=";", fieldnames=["respondent", "submission id", "answer"])
-        if not file_exists:
-            writer.writeheader()
+    with open(responses_file, mode="a", newline="", encoding="utf-8") as f:
+        fieldnames = ["respondent", "submission id", "answer", "comment"]
+        writer = csv.DictWriter(f, delimiter=";", fieldnames=fieldnames)
+
         writer.writerow(
             {
                 "respondent": user_id,
                 "submission id": question_id,
                 "answer": answer,
+                "comment": comment,
             }
         )
 
