@@ -8,7 +8,7 @@ from pathlib import Path
 from .survey_logic import *
 
 
-def show_survey_page(data_path: Path, form: cgi.FieldStorage):
+def survey(data_path: Path, form: cgi.FieldStorage):
     """Display a survey question and handle recording the user's answer."""
     user_choice = form.getvalue("choice")
     question_id = form.getvalue("question_id")

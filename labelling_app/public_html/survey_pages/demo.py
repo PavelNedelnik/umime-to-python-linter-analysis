@@ -1,7 +1,7 @@
 """Demo / Instructions page for the survey."""
 
 
-def show_demo_page():
+def demo():
     """Display an instructional demo showing how to complete the survey."""
     print("""
     <main class="demo-container">

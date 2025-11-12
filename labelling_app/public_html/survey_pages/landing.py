@@ -1,7 +1,7 @@
 """Landing page for the survey."""
 
 
-def show_landing_page():
+def landing():
     """Display the landing page HTML."""
     print("""
     <main class="landing-container">

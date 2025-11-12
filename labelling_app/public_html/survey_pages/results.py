@@ -8,7 +8,7 @@ from pathlib import Path
 from .survey_logic import get_user_id
 
 
-def show_results_page(data_path: Path, form: cgi.FieldStorage):
+def results(data_path: Path, form: cgi.FieldStorage):
     """
     Display the survey results page with navigation and vote highlighting.
 

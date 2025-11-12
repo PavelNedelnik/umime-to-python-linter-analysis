@@ -9,10 +9,7 @@ import uuid
 from pathlib import Path
 
 # Import page modules
-from scripts.demo import show_demo_page
-from scripts.landing import show_landing_page
-from scripts.results import show_results_page
-from scripts.survey import show_survey_page
+from survey_pages import demo, landing, results, survey
 
 # --- Configuration ---
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -73,13 +70,12 @@ print(f"""<!DOCTYPE html>
 
 # --- Route to correct page ---
 if page == "survey":
-    show_survey_page(DATA_PATH, form)
+    survey(DATA_PATH, form)
 elif page == "results":
-    show_results_page(DATA_PATH, form)
+    results(DATA_PATH, form)
 elif page == "demo":
-    show_demo_page()
+    demo()
 else:
-    show_landing_page()
+    landing()
 
-print("</body></html>")
 print("</body></html>")
