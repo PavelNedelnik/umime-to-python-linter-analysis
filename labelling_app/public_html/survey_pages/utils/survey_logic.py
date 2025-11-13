@@ -8,6 +8,7 @@ recording answers in the survey application.
 import http.cookies
 import os
 import uuid
+from collections import defaultdict
 from pathlib import Path
 
 from .data_access import load_csv, save_csv_row
@@ -74,3 +75,22 @@ def get_unanswered_questions(data_path: Path, user_id: str) -> list:
     answered_ids = {row["submission id"] for row in responses if row["respondent"] == user_id}
     submissions = load_csv(data_path / "submissions.csv")
     return [s for s in submissions if s["index"] not in answered_ids]
+
+
+def get_defects_for_submission(data_path: Path, submission_id: str) -> list:
+    """Return the defects for a given submission ID."""
+    defects = load_csv(data_path / "defects.csv")
+    defects = [d for d in defects if d["submission id"] == submission_id]
+
+    return defects
+
+
+def get_defect_counts(data_path: Path, submission_id: str) -> defaultdict:
+    """Return the defects for a given submission ID."""
+    responses = load_csv(data_path / "responses.csv")
+    defect_counts = defaultdict(lambda: 0)
+    for response in responses:
+        if response["submission id"] == submission_id:
+            defect_counts[response["answer"]] = defect_counts.get(response["answer"], 0) + 1
+
+    return defect_counts

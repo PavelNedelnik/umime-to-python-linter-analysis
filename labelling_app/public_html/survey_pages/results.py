@@ -3,11 +3,12 @@
 import cgi
 from pathlib import Path
 
-from .utils import components, data_access, survey_logic
+from .utils import data_access, shared_components, survey_logic
 
 
 def results(data_path: Path, form: cgi.FieldStorage):
     """Display survey results with vote-based highlights."""
+    # --- Collect data ---
     question_index = int(form.getvalue("question_index", 0))
     submissions = data_access.load_csv(data_path / "submissions.csv")
 
@@ -15,23 +16,22 @@ def results(data_path: Path, form: cgi.FieldStorage):
         return show_no_results_page()
 
     question = submissions[question_index]
-    defects = data_access.load_csv(data_path / "defects.csv")
-    defects = [d for d in defects if d["submission id"] == question["index"]]
 
-    # Calculate votes
-    responses = data_access.load_csv(data_path / "responses.csv")
-    defect_counts = {d["defect id"]: 0 for d in defects}
-    for r in responses:
-        if r["submission id"] == question["index"]:
-            defect_counts[r["answer"]] = defect_counts.get(r["answer"], 0) + 1
-    for d in defects:
-        d["vote_count"] = defect_counts.get(d["defect id"], 0)
-
+    defects = survey_logic.get_defects_for_submission(data_path, question["index"])
+    defect_counts = survey_logic.get_defect_counts(data_path, question["index"])
     heuristics = data_access.load_csv(data_path / "heuristics.csv")
 
-    # HTML output
-    print(
-        """
+    # --- Render page components ---
+    print(render_navigation_bar(submissions, question_index))
+    print(shared_components.render_task_section(question, defects, heuristics))
+    print(render_results_defects_section(defects, defect_counts))
+
+    print("</div></div>")  # survey-content + container
+
+
+def render_navigation_bar(submissions, question_index):
+    """Render the navigation bar for the results page."""
+    return """
     <div class="survey-container">
         <header class="survey-header">
             <h1>Survey Results</h1>
@@ -41,51 +41,27 @@ def results(data_path: Path, form: cgi.FieldStorage):
         </header>
         <div class="survey-content">
     """.format(
-            prev_index=max(0, question_index - 1),
-            next_index=min(len(submissions) - 1, question_index + 1),
-            prev_disabled="disabled" if question_index == 0 else "",
-            next_disabled="disabled" if question_index == len(submissions) - 1 else "",
-        )
+        prev_index=max(0, question_index - 1),
+        next_index=min(len(submissions) - 1, question_index + 1),
+        prev_disabled="disabled" if question_index == 0 else "",
+        next_disabled="disabled" if question_index == len(submissions) - 1 else "",
     )
 
-    # Left: task + context table
-    print(components.render_task_section(question, defects, heuristics))
 
-    # Right: defects with vote highlight
-    print(render_results_defects_section(defects))
-
-    print("</div></div>")  # survey-content + container
-
-
-def render_results_defects_section(defects: list) -> str:
-    """Render defects with vote counts; highlight the most voted defect (unclickable)."""
+def render_results_defects_section(defects: list, defect_counts: dict) -> str:
+    """Render read-only defects with vote counts and highlight the most-voted one."""
     if not defects:
         return "<p>No defects available.</p>"
 
-    most_voted = max(defects, key=lambda d: int(d.get("vote_count", 0)))
+    most_votes = max(defect_counts.values(), default=0)
 
-    html = ['<section class="defects-section">']
-    html.append('<form class="defect-form">')
-
-    for d in defects:
-        cls = "defect-button"
-        if d == most_voted:
-            cls += " highlighted unclickable"
-
-        html.append(f"""
-        <button type='submit' class='{cls}'>
-            <div class="defect-content-wrapper">
-                <div class="defect-info">
-                    <p><strong>{d["name"]}:</strong> {d["description"]}</p>
-                    <p><strong>Votes:</strong> {d.get("vote_count", 0)}</p>
-                    <div class="defect-fix-block">
-        """)
-        if d.get("code example"):
-            html.append(f"<pre class='code-block'>{d['code example']}</pre>")
-        if d.get("code fix example"):
-            html.append(f"<pre class='code-block'>{d['code fix example']}</pre>")
-        html.append("</div></div></div></button>")
-
+    html = ['<section class="defects-section"><form class="defect-form">']
+    for defect in defects:
+        votes = defect_counts.get(defect["defect id"], 0)
+        highlight = votes == most_votes and votes > 0
+        html.append(
+            shared_components.render_defect_button(defect, is_clickable=False, highlight=highlight, votes=votes)
+        )
     html.append("</form></section>")
     return "".join(html)
 

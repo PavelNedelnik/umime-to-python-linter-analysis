@@ -1,13 +1,8 @@
-"""
-Shared rendering components for survey pages.
-
-Includes:
-- Task section
-- Context table
-- Comment box
-"""
+"""Shared rendering components for survey pages."""
 
 from .survey_logic import map_score
+
+# -------------------- Task Section --------------------
 
 
 def render_task_section(question: dict, defects: list, heuristics: list) -> str:
@@ -50,6 +45,9 @@ def render_context_table(defects: list, heuristics: list) -> str:
     return "".join(html)
 
 
+# -------------------- Defect Section --------------------
+
+
 def render_comment_box() -> str:
     """Render a comment box to be included in the survey defects section."""
     return """
@@ -60,38 +58,35 @@ def render_comment_box() -> str:
     """
 
 
-def render_defect_content(defect: dict) -> str:
-    """
-    Render the content inside a defect button: description, example, and fix code.
-
-    :param defect: Defect dictionary.
-    :return: HTML string for the inner content of a defect
-    """
-    html = [
-        "<div class='defect-content-wrapper'>",
-        "<div class='defect-info'>",
-        f"<p><strong>{defect.get('name', '')}:</strong> {defect.get('description', '')}</p>",
-        "<div class='defect-fix-block'>",
-    ]
-
+def render_defect_fix_block(defect: dict) -> str:
+    """Render code example and fix example for a defect."""
+    html = ["<div class='defect-fix-block'>"]
     if defect.get("code example"):
         html.append(f"<pre class='code-block'>{defect['code example']}</pre>")
     if defect.get("code fix example"):
         html.append(f"<pre class='code-block'>{defect['code fix example']}</pre>")
-
-    html.append("</div></div></div>")  # Close blocks
+    html.append("</div>")
     return "".join(html)
 
 
-def render_defect_button(defect: dict, is_clickable: bool = True, highlight: bool = False) -> str:
-    """
-    Render a single defect as a button (survey) or read-only (results).
+def render_defect_content(defect: dict, votes: int | None = None) -> str:
+    """Render the inner content of a defect card: name, description, examples, etc."""
+    html = [
+        "<div class='defect-content-wrapper'>",
+        "<div class='defect-info'>",
+        f"<p><strong>{defect.get('name', '')}:</strong> {defect.get('description', '')}</p>",
+    ]
+    if votes is not None:
+        html.append(f"<p><strong>Votes:</strong> {votes}</p>")
+    html.append(render_defect_fix_block(defect))
+    html.append("</div></div>")
+    return "".join(html)
 
-    :param defect: Defect dictionary
-    :param is_clickable: True for survey buttons, False for results
-    :param highlight: True to highlight (most voted) defect
-    :return: HTML string
-    """
+
+def render_defect_button(
+    defect: dict, is_clickable: bool = True, highlight: bool = False, votes: int | None = None
+) -> str:
+    """Render a single defect as a button."""
     classes = ["defect-button"]
     if highlight:
         classes.append("highlighted")
@@ -99,10 +94,10 @@ def render_defect_button(defect: dict, is_clickable: bool = True, highlight: boo
         classes.append("unclickable")
 
     class_str = " ".join(classes)
-    name_attr = f"name='choice'" if is_clickable else ""
+    name_attr = "name='choice'" if is_clickable else ""
     value_attr = f"value='{defect.get('defect id', '')}'" if is_clickable else ""
 
     html = [f"<button type='submit' {name_attr} {value_attr} class='{class_str}'>"]
-    html.append(render_defect_content(defect))
+    html.append(render_defect_content(defect, votes=votes))
     html.append("</button>")
     return "".join(html)
