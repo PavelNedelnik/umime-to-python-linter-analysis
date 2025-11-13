@@ -9,6 +9,7 @@ import http.cookies
 import os
 import uuid
 from collections import defaultdict
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .data_access import load_csv, save_csv_row
@@ -16,6 +17,8 @@ from .data_access import load_csv, save_csv_row
 """
 Simplified mapping of numeric scores to qualitative labels and CSS class names.
 """
+
+FEEDBACK_FREQUENCY = 3
 
 # --- Mapping of scale names to numeric -> (label, css_class) ---
 SCALE_MAP = {
@@ -62,11 +65,32 @@ def get_user_id() -> str:
         return user_id
 
 
+def get_timestamp() -> str:
+    """
+    Return a timezone-aware ISO 8601 timestamp string (UTC).
+
+    Example: "2025-11-12T16:30:45Z"
+    """
+    try:
+        # Use UTC for consistency across systems
+        now = datetime.now(timezone.utc)
+        return now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    except Exception as e:
+        return "unknown"
+
+
 def save_answer(data_path: Path, user_id: str, question_id: str, answer: str, comment: str = ""):
     """Save a user's answer (and optional comment) to the responses.csv file."""
     row = {"respondent": user_id, "submission id": question_id, "answer": answer, "comment": comment}
     fieldnames = ["respondent", "submission id", "answer", "comment"]
     save_csv_row(data_path / "responses.csv", fieldnames, row)
+
+
+def save_feedback(data_path: Path, user_id: str, feedback_text: str):
+    """Save a user’s general feedback."""
+    row = {"timestamp": get_timestamp(), "respondent": user_id, "feedback": feedback_text}
+    fieldnames = ["timestamp", "respondent", "feedback"]
+    save_csv_row(data_path / "feedback.csv", fieldnames, row)
 
 
 def get_unanswered_questions(data_path: Path, user_id: str) -> list:
@@ -94,3 +118,10 @@ def get_defect_counts(data_path: Path, submission_id: str) -> defaultdict:
             defect_counts[response["answer"]] = defect_counts.get(response["answer"], 0) + 1
 
     return defect_counts
+
+
+def is_feedback_checkpoint(data_path: Path, user_id: str) -> bool:
+    """Return True if it's time to show the feedback prompt."""
+    responses = load_csv(data_path / "responses.csv")
+    user_responses = [r for r in responses if r["respondent"] == user_id]
+    return len(user_responses) > 0 and len(user_responses) % FEEDBACK_FREQUENCY == 0

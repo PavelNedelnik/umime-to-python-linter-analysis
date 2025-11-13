@@ -3,6 +3,7 @@
 import cgi
 import random
 from pathlib import Path
+from urllib.parse import urlencode
 
 from .utils import data_access, shared_components, survey_logic
 
@@ -14,10 +15,22 @@ def survey(data_path: Path, form: cgi.FieldStorage):
     user_choice = form.getvalue("choice")
     question_id = form.getvalue("question_id")
     comment = form.getvalue("comment", "").strip()
+    feedback = form.getvalue("feedback", "").strip()
+    feedback_just_submitted = form.getvalue("feedback_submitted")
+
+    if feedback:
+        survey_logic.save_feedback(data_path, user_id, feedback)
+        # Refresh the page without feedback form
+        params = urlencode({"page": "survey", "feedback_submitted": "1"})
+        print(f"<meta http-equiv='refresh' content='0; url=defects.py?{params}'>")
+        return
 
     # Record previous answer if available
     if user_choice:
         survey_logic.save_answer(data_path, user_id, question_id, user_choice, comment)
+
+    # Check if it's time to show the feedback prompt
+    show_feedback_prompt = not feedback_just_submitted and survey_logic.is_feedback_checkpoint(data_path, user_id)
 
     # Get next unanswered question
     questions = survey_logic.get_unanswered_questions(data_path, user_id)
@@ -30,6 +43,8 @@ def survey(data_path: Path, form: cgi.FieldStorage):
 
     # ---- Render page components ----
     print(render_header())
+    if show_feedback_prompt:
+        print(render_feedback_prompt())
     print("<div class='survey-content'>")
     print(shared_components.render_task_section(question, defects, heuristics))
     print(render_survey_defects_section(defects, question["index"]))
@@ -48,6 +63,21 @@ def render_header() -> str:
             </p>
             <button onclick="window.location.href='defects.py'" class="nav-button">Exit</button>
         </header>
+    """
+
+
+def render_feedback_prompt() -> str:
+    """Render a feedback box shown periodically during the survey."""
+    return """
+    <section class="feedback-section">
+        <h2>Quick Feedback</h2>
+        <p>You've completed several questions! How is the survey experience so far?</p>
+        <form action="defects.py?page=survey" method="post" class="feedback-form">
+            <textarea name="feedback" rows="3" class="feedback-box" placeholder="Your feedback (optional)"></textarea>
+            <br>
+            <button type="submit" class="nav-button">Submit Feedback</button>
+        </form>
+    </section>
     """
 
 

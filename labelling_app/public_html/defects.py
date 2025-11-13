@@ -16,11 +16,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_PATH = BASE_DIR / "survey_data" / "ipython_0.0.0"
 CSS_RELATIVE_PATH = "../css/defects.css"  # relative to /public_html
 
-# --- Ensure responses.csv exists ---
+# --- Ensure logging files exist ---
 responses_file = DATA_PATH / "responses.csv"
 if not responses_file.exists():
     with open(responses_file, mode="a", newline="", encoding="utf-8") as f:
         f.write("respondent;submission id;answer;comment\n")
+
+feedback_file = DATA_PATH / "feedback.csv"
+if not feedback_file.exists():
+    with open(feedback_file, mode="a", newline="", encoding="utf-8") as f:
+        f.write("timestamp;respondent;feedback\n")
 
 # --- UTF-8 output ---
 sys.stdout.reconfigure(encoding="utf-8")
