@@ -1,51 +1,68 @@
 """Demo / Instructions page for the survey."""
 
+from .utils import data_access, shared_components, survey_logic
 
-def demo():
-    """Display an instructional demo showing how to complete the survey."""
-    print("""
-    <main class="demo-container">
-        <section class="survey-header">
+
+def demo(data_path):
+    """Render an instructional demo that automatically matches the survey layout."""
+    questions = data_access.get_submissions(data_path)
+
+    question = questions[0]
+    defects = survey_logic.get_defects_for_submission(data_path, question["index"])
+    heuristics = data_access.load_csv(data_path / "heuristics.csv")
+
+    # ---- Render page ----
+    print(render_demo_header())
+
+    print('<div class="survey-content">')
+
+    # Instructions / Start button aligned like feedback form
+    print(render_demo_instructions())
+
+    # Task section
+    print(shared_components.render_task_section(question, defects, heuristics))
+
+    # Defects section (unclickable)
+    print(shared_components.render_survey_defects_section(defects, question["index"], is_clickable=False))
+
+    print("</div>")  # close survey-content
+
+
+def render_demo_header() -> str:
+    """Render the header for the demo page."""
+    return """
+    <div class="survey-container">
+        <header class="survey-header">
             <h1>Survey Demo & Instructions</h1>
             <p>
-                This short demo will show you how to complete the survey.
-                You will be presented with a student's code submission and a list of potential defects.
-                Your task is to <strong>select the defect</strong> that you think best describes
-                the main issue in the code.
+                This demo uses a real student submission. Your task is to select
+                the defect that best describes the main issue in the code.
             </p>
-        </section>
+        </header>
+    """
 
-        <section class="demo-example">
-            <h2>Example Task</h2>
-            <p><strong>Instructions:</strong> Identify the most relevant defect in the following code.</p>
-            <pre class="code-block"><code>
-def add_numbers(a, b):
-    result = a + b
-    print(result)
-    return print(result)
-            </code></pre>
-        </section>
 
-        <section class="demo-defects">
-            <h3>Example Defects</h3>
-            <div class="defect-button unclickable">
-                <p><strong>Redundant Output:</strong> The result is printed twice unnecessarily.</p>
-            </div>
-            <div class="defect-button unclickable">
-                <p><strong>Return Value Misuse:</strong> Returning the result of print() yields None instead of the sum.</p>
-            </div>
-            <div class="defect-button unclickable">
-                <p><strong>Variable Naming:</strong> Variable names could be clearer but do not affect correctness.</p>
-            </div>
-        </section>
+def render_demo_instructions() -> str:
+    """Render instructions with a start button, styled like feedback form."""
+    return """
+    <section class="feedback-section">
+        <h2>How the Survey Works</h2>
 
-        <section class="demo-footer">
-            <p>
-                When you take the actual survey, simply click the button corresponding
-                to the defect you think is most relevant.
-            </p>
-            <a href="defects.py?page=survey" class="nav-button large-button">Start the Real Survey</a>
-            <a href="defects.py?page=landing" class="nav-button large-button">Back to Landing Page</a>
+        <p>This demo shows exactly how each survey question is structured.</p>
+
+        <p><strong>1. Review the student’s submission.</strong></p>
+        <p><strong>2. Compare it with the list of defects.</strong></p>
+        <p><strong>3. Choose the defect that best describes the main issue.</strong></p>
+
+        <p>All components you see here—the task panel, context table,
+        defect cards, and examples—are the same ones used in the actual survey.</p>
+
+        <p>The only difference is that selections are disabled.</p>
+
+        <p>When ready, click “Start the Real Survey” below.</p>
+        <section class="buttons-container">
+            <button onclick="window.location.href='defects.py'" class="nav-button">Back to the Landing Page</button>
+            <button onclick="window.location.href='defects.py?page=survey'" class="nav-button">Start the Real Survey</button>
         </section>
-    </main>
-    """)
+    </section>
+    """

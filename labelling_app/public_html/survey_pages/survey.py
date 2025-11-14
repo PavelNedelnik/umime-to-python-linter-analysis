@@ -47,7 +47,7 @@ def survey(data_path: Path, form: cgi.FieldStorage):
         print(render_feedback_prompt())
     print("<div class='survey-content'>")
     print(shared_components.render_task_section(question, defects, heuristics))
-    print(render_survey_defects_section(defects, question["index"]))
+    print(shared_components.render_survey_defects_section(defects, question["index"]))
     print("</div></div>")  # Close content + container
 
 
@@ -79,25 +79,6 @@ def render_feedback_prompt() -> str:
         </form>
     </section>
     """
-
-
-def render_survey_defects_section(defects: list, question_index: str) -> str:
-    """Render defects as selectable buttons with an attached comment box."""
-    if not defects:
-        return "<p>No defects available.</p>"
-
-    html = ['<section class="defects-section">']
-    html.append('<form action="defects.py?page=survey" method="post" class="defect-form">')
-
-    for defect in defects:
-        html.append(shared_components.render_defect_button(defect, is_clickable=True))
-
-    # Add comment box
-    html.append(shared_components.render_comment_box())
-    html.append(f'<input type="hidden" name="question_id" value="{question_index}">')
-    html.append("</form></section>")
-
-    return "".join(html)
 
 
 def show_thank_you_page():

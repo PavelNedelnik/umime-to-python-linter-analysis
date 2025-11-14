@@ -79,7 +79,7 @@ if page == "survey":
 elif page == "results":
     results(DATA_PATH, form)
 elif page == "demo":
-    demo()
+    demo(DATA_PATH)
 else:
     landing()
 

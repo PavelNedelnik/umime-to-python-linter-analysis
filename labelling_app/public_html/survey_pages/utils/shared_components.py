@@ -17,6 +17,7 @@ def render_task_section(question: dict, defects: list, heuristics: list) -> str:
     ]
     html.append('<div class="context-section"><h3>Defect Context by Heuristic</h3>')
     html.append(render_context_table(defects, heuristics))
+    html.append(render_heuristic_explanation())
     html.append("</div></section>")
     return "".join(html)
 
@@ -45,15 +46,70 @@ def render_context_table(defects: list, heuristics: list) -> str:
     return "".join(html)
 
 
+def render_heuristic_explanation() -> str:
+    """Educator-friendly explanation of heuristic models, displayed below the table."""
+    return """
+    <section class="heuristics-explanation">
+        <h3>How the Models Work</h3>
+        <p>
+            Defects are prioritized using patterns from the assignment, the student’s history,
+            and educator-rated severity.
+        </p>
+
+        <table class="heuristics-table">
+            <thead>
+                <tr><th>Heuristic</th><th>Meaning</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Task: Common Defects</td>
+                    <td>Frequent errors across students on this task</td>
+                </tr>
+                <tr>
+                    <td>Task: Characteristic Defects</td>
+                    <td>Unique mistakes tied to this specific task</td>
+                </tr>
+                <tr>
+                    <td>Student: Frequency</td>
+                    <td>Persistent individual mistakes</td>
+                </tr>
+                <tr>
+                    <td>Student: Characteristic Defect</td>
+                    <td>Personal learning gaps</td>
+                </tr>
+                <tr>
+                    <td>Student: Encountered Before</td>
+                    <td>Reinforces previously seen mistakes</td>
+                </tr>
+                <tr>
+                    <td>Defect Multiplicity</td>
+                    <td>Indicates fundamental misunderstandings</td>
+                </tr>
+                <tr>
+                    <td>Baseline: Severity</td>
+                    <td>Overall seriousness of the defect</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+    """
+
+
 # -------------------- Defect Section --------------------
 
 
-def render_comment_box() -> str:
+def render_comment_box(disabled: bool = False) -> str:
     """Render a comment box to be included in the survey defects section."""
-    return """
+    attribute = ""
+    instructions = "Will be submitted with the response"
+    if disabled:
+        attribute = "disabled"
+        instructions = "Disabled for the demo"
+
+    return f"""
     <div class="comment-section">
-        <h3>Optional Comment: (Will be submitted with the response)</h3>
-        <textarea name="comment" id="comment" class="comment-box" rows="4"></textarea>
+        <h3>Optional Comment: ({instructions})</h3>
+        <textarea name="comment" id="comment" class="comment-box" rows="4" {attribute}></textarea>
     </div>
     """
 
@@ -100,4 +156,23 @@ def render_defect_button(
     html = [f"<button type='submit' {name_attr} {value_attr} class='{class_str}'>"]
     html.append(render_defect_content(defect, votes=votes))
     html.append("</button>")
+    return "".join(html)
+
+
+def render_survey_defects_section(defects: list, question_index: str, is_clickable: bool = True) -> str:
+    """Render defects as selectable buttons with an attached comment box."""
+    if not defects:
+        return "<p>No defects available.</p>"
+
+    html = ['<section class="defects-section">']
+    html.append('<form action="defects.py?page=survey" method="post" class="defect-form">')
+
+    for defect in defects:
+        html.append(render_defect_button(defect, is_clickable=is_clickable))
+
+    # Add comment box
+    html.append(render_comment_box(disabled=not is_clickable))
+    html.append(f'<input type="hidden" name="question_id" value="{question_index}">')
+    html.append("</form></section>")
+
     return "".join(html)
