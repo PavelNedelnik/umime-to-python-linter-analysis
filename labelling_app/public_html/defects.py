@@ -20,7 +20,7 @@ CSS_RELATIVE_PATH = "../css/defects.css"  # relative to /public_html
 responses_file = DATA_PATH / "responses.csv"
 if not responses_file.exists():
     with open(responses_file, mode="a", newline="", encoding="utf-8") as f:
-        f.write("respondent;submission id;answer;comment\n")
+        f.write("timestamp;respondent;submission id;answer;comment\n")
 
 feedback_file = DATA_PATH / "feedback.csv"
 if not feedback_file.exists():

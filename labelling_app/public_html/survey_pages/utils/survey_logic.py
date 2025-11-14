@@ -81,8 +81,14 @@ def get_timestamp() -> str:
 
 def save_answer(data_path: Path, user_id: str, question_id: str, answer: str, comment: str = ""):
     """Save a user's answer (and optional comment) to the responses.csv file."""
-    row = {"respondent": user_id, "submission id": question_id, "answer": answer, "comment": comment}
-    fieldnames = ["respondent", "submission id", "answer", "comment"]
+    row = {
+        "timestamp": get_timestamp(),
+        "respondent": user_id,
+        "submission id": question_id,
+        "answer": answer,
+        "comment": comment,
+    }
+    fieldnames = ["timestamp", "respondent", "submission id", "answer", "comment"]
     save_csv_row(data_path / "responses.csv", fieldnames, row)
 
 
