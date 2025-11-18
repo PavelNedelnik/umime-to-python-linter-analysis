@@ -42,7 +42,7 @@ SCALE_MAP = {
 
 
 # ============================================================
-# ==================  UTILITY / HELPERS  ======================
+# ==================  UTILITY / HELPERS  =====================
 # ============================================================
 
 
@@ -73,7 +73,7 @@ def _parse_index(submission: Dict) -> int:
 
 
 # ============================================================
-# =====================  USER / SESSIONS  =====================
+# =====================  USER / SESSIONS  ====================
 # ============================================================
 
 
@@ -100,7 +100,7 @@ def get_user_id() -> str:
 
 
 # ============================================================
-# =====================  SAVING RESULTS  ======================
+# =====================  SAVING RESULTS  =====================
 # ============================================================
 
 
@@ -125,20 +125,8 @@ def save_feedback(data_path: Path, user_id: str, feedback_text: str):
 
 
 # ============================================================
-# ===============  QUESTION / DEFECT RETRIEVAL  ===============
+# ===============  QUESTION / DEFECT RETRIEVAL  ==============
 # ============================================================
-
-
-def get_unanswered_questions(data_path: Path, user_id: str) -> List[Dict]:
-    """Return all unanswered submissions sorted by numeric index."""
-    responses = load_csv(data_path / "responses.csv")
-    answered_ids = {row["submission id"] for row in responses if row.get("respondent") == user_id}
-
-    submissions = load_csv(data_path / "submissions.csv")
-    unanswered = [s for s in submissions if s.get("index") not in answered_ids]
-
-    unanswered.sort(key=_parse_index)
-    return unanswered
 
 
 def get_next_question(data_path: Path, user_id: str) -> dict | None:
@@ -163,9 +151,9 @@ def get_next_question(data_path: Path, user_id: str) -> dict | None:
     submissions = load_csv(data_path / "submissions.csv")
 
     # look for completely unanswered questions
-    never_answered_questions = [s for s in submissions if s.get("index") not in total_responses]
-    if len(never_answered_questions) > 0:
-        return random.choice(never_answered_questions)
+    globally_unanswered_questions = [s for s in submissions if s.get("index") not in total_responses]
+    if len(globally_unanswered_questions) > 0:
+        return random.choice(globally_unanswered_questions)
 
     # eligible questions
     user_unanswered_questions = [s for s in submissions if s.get("index") not in user_answered]
@@ -208,7 +196,7 @@ def get_defect_counts(data_path: Path, submission_id: str) -> defaultdict:
 
 
 # ============================================================
-# =================  SURVEY FLOW / CHECKPOINTS  ===============
+# =================  SURVEY FLOW / CHECKPOINTS  ==============
 # ============================================================
 
 
