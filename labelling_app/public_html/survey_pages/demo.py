@@ -17,13 +17,25 @@ def demo(data_path) -> str:
     defects = survey_logic.get_defects_for_submission(data_path, question["index"])
     heuristics = data_access.load_csv(data_path / "heuristics.csv")
 
+    left_column = [
+        shared_components.render_task_section(question, defects, heuristics),
+        shared_components.render_heuristics_section(defects, heuristics),
+    ]
+
+    right_column = [
+        shared_components.render_defects_section(
+            defects,
+            question["index"],
+            is_clickable=False,
+            show_comment_box=True,
+        )
+    ]
+
     html = [
         render_demo_header(),
-        '<div class="survey-content">',
         render_demo_instructions(),
-        shared_components.render_task_section(question, defects, heuristics),
-        shared_components.render_survey_defects_section(defects, question["index"], is_clickable=False),
-        "</div>",  # close survey-content
+        shared_components.two_column_layout(left_column, right_column),
+        "</div>",  # close survey-container
     ]
 
     return "".join(html)
@@ -63,9 +75,9 @@ def render_demo_instructions() -> str:
         <p>All components here—the task panel, context table, and defect cards—are
         the same ones used in the actual survey. The only difference is that selections are disabled.</p>
 
-        <section class="buttons-container">
+        <div class="nav-buttons">
             <button onclick="window.location.href='defects.py'" class="nav-button">Back to the Landing Page</button>
             <button onclick="window.location.href='defects.py?page=survey'" class="nav-button">Start the Real Survey</button>
-        </section>
+        </div>
     </section>
     """

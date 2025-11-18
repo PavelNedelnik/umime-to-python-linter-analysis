@@ -25,14 +25,14 @@ def survey(data_path: Path, form) -> str:
         params = urlencode({"page": "survey", "feedback_submitted": "1"})
         return f"<meta http-equiv='refresh' content='0; url=defects.py?{params}'>"
 
-    # Record answer to previous question
+    # Record answer to the previous question
     if user_choice:
         survey_logic.save_answer(data_path, user_id, question_id, user_choice, comment)
 
-    # Determine whether to show feedback prompt
+    # Determine whether to show the feedback prompt
     show_feedback_prompt = not feedback_just_submitted and survey_logic.is_feedback_checkpoint(data_path, user_id)
 
-    # Retrieve next question
+    # Retrieve the next question
     question = survey_logic.get_next_question(data_path, user_id)
     if question is None:
         return show_thank_you_page()
@@ -40,13 +40,28 @@ def survey(data_path: Path, form) -> str:
     defects = survey_logic.get_defects_for_submission(data_path, question["index"])
     heuristics = data_access.load_csv(data_path / "heuristics.csv")
 
+    # Render the page content
     html = [render_header()]
     if show_feedback_prompt:
         html.append(render_feedback_prompt())
-    html.append("<div class='survey-content'>")
-    html.append(shared_components.render_task_section(question, defects, heuristics))
-    html.append(shared_components.render_survey_defects_section(defects, question["index"]))
-    html.append("</div></div>")  # Close survey-content and container
+
+    left_column = [
+        shared_components.render_task_section(question, defects, heuristics),
+        shared_components.render_heuristics_section(defects, heuristics),
+    ]
+
+    right_column = [
+        shared_components.render_defects_section(
+            defects,
+            question["index"],
+            is_clickable=True,
+            show_comment_box=True,
+        ),
+    ]
+
+    html.append(shared_components.two_column_layout(left_column, right_column))
+
+    html.append("</div>")  # close survey-container
     return "".join(html)
 
 

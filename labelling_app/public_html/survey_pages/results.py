@@ -22,11 +22,22 @@ def results(data_path: Path, form) -> str:
     defect_counts = survey_logic.get_defect_counts(data_path, question["index"])
     heuristics = data_access.load_csv(data_path / "heuristics.csv")
 
+    # Build left and right columns for consistent layout
+    left_column = [
+        shared_components.render_task_section(question, defects, heuristics),
+        shared_components.render_heuristics_section(defects, heuristics),
+    ]
+
+    right_column = [
+        shared_components.render_defects_section(
+            defects, question["index"], is_clickable=False, show_comment_box=False, defect_vote_counts=defect_counts
+        ),
+    ]
+
     html = [
         render_navigation_bar(submissions, question_index),
-        shared_components.render_task_section(question, defects, heuristics),
-        render_results_defects_section(defects, defect_counts),
-        "</div></div>",  # close survey-content and container
+        shared_components.two_column_layout(left_column, right_column),
+        "</div>",  # close survey-container
     ]
     return "".join(html)
 
@@ -42,36 +53,20 @@ def render_navigation_bar(submissions, question_index) -> str:
     <div class="survey-container">
         <header class="survey-header">
             <h1>Survey Results</h1>
-            <button onclick="window.location.href='defects.py'" class="nav-button">Exit</button>
-            <button onclick="window.location.href='defects.py?page=results&question_index={prev_index}'"
-                    class="nav-button" {prev_disabled}>Previous</button>
-            <button onclick="window.location.href='defects.py?page=results&question_index={next_index}'"
-                    class="nav-button" {next_disabled}>Next</button>
+            <div class="nav-buttons">
+                <button onclick="window.location.href='defects.py'" class="nav-button">Exit</button>
+                <button onclick="window.location.href='defects.py?page=results&question_index={prev_index}'"
+                        class="nav-button" {prev_disabled}>Previous</button>
+                <button onclick="window.location.href='defects.py?page=results&question_index={next_index}'"
+                        class="nav-button" {next_disabled}>Next</button>
+            </div>
         </header>
-        <div class="survey-content">
     """.format(
         prev_index=max(0, question_index - 1),
         next_index=min(len(submissions) - 1, question_index + 1),
         prev_disabled="disabled" if question_index == 0 else "",
         next_disabled="disabled" if question_index == len(submissions) - 1 else "",
     )
-
-
-def render_results_defects_section(defects: list, defect_counts: dict) -> str:
-    """Render read-only defects with vote counts and highlight the most-voted one."""
-    if not defects:
-        return "<p>No defects available.</p>"
-
-    most_votes = max(defect_counts.values(), default=0)
-    html = ['<section class="defects-section"><form class="defect-form">']
-    for defect in defects:
-        votes = defect_counts.get(defect["defect id"], 0)
-        highlight = votes == most_votes and votes > 0
-        html.append(
-            shared_components.render_defect_button(defect, is_clickable=False, highlight=highlight, votes=votes)
-        )
-    html.append("</form></section>")
-    return "".join(html)
 
 
 def show_no_results_page() -> str:

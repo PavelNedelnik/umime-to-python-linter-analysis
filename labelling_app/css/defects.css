@@ -1,215 +1,141 @@
-/* -------------------- Base Styles -------------------- */
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0 20px;
-    color: #333;
-    background-color: #f4f4f4;
+/* ===================== Variables ===================== */
+:root {
+    --color-bg-body: #f4f4f4;
+    --color-bg-card: #f5f5f5;
+    --color-bg-code: #f0f0f0;
+    --color-bg-highlight: #d1ffd1;
+    --color-bg-feedback: #c5d5ef;
+    --color-bg-demo-sidebar: #fff5f5;
+    --color-btn: #dcdcdc;
+    --color-btn-hover: #c0c0c0;
+    --color-btn-select: #b2dfdb;
+    --color-btn-select-hover: #80cbc4;
+    --color-text-primary: #333;
+    --color-text-secondary: #555;
+    --color-highlight-border: #4caf50;
+    --font-base: Arial, sans-serif;
+    --border-radius: 8px;
+    --gap: 20px;
+}
+
+/* ===================== Base Styles ===================== */
+*,
+*::before,
+*::after {
     box-sizing: border-box;
 }
 
+body {
+    font-family: var(--font-base);
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-body);
+    margin: 0;
+    padding: 0 20px;
+    line-height: 1.5;
+}
+
 h1, h2, h3 {
-    color: #333;
     margin: 0.3em 0;
+    color: var(--color-text-primary);
 }
 
 p {
-    color: #555;
     margin: 0.3em 0;
+    color: var(--color-text-secondary);
 }
 
-/* -------------------- Landing Page -------------------- */
-.landing-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    max-width: 900px;
-    margin: auto;
-    text-align: center;
-    background-color: #f5f5f5;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.buttons-container {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-top: 20px;
-}
-
-.large-button, .nav-button, .defect-button {
-    display: inline-block;
-    padding: 12px 24px;
-    font-size: 1.1em;
+a {
     text-decoration: none;
-    background-color: #dcdcdc;
-    color: #333;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+    color: inherit;
 }
 
-.large-button:hover, .nav-button:hover, .defect-button:hover {
-    background-color: #c0c0c0;
-}
-
-.large-button:disabled, .nav-button:disabled {
-    background-color: #b0b0b0;
-    cursor: not-allowed;
-}
-
-/* -------------------- Survey & Results Containers -------------------- */
-.survey-container {
+/* ===================== Containers ===================== */
+.survey-container,
+.landing-container,
+.demo-layout {
     display: flex;
     flex-direction: column;
     align-items: center;
     width: 100%;
     margin: auto;
+    gap: var(--gap);
 }
 
-.survey-header {
+.survey-header,
+.landing-container {
     text-align: center;
-    margin-bottom: 20px;
-}
-
-.nav-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin: 10px 0;
 }
 
 .survey-content {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    gap: 20px;
+    gap: var(--gap);
     width: 100%;
 }
 
-.task-section, .defects-section {
-    width: 48%;
-    background-color: #f5f5f5;
-    padding: 15px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    border-radius: 8px;
-    margin-bottom: 20px;
-    flex: 1 1 47%;
-    min-width: 350px;
+.two-column-layout {
+    display: flex;
+    gap: var(--gap);
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
+.left-column,
+.right-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+}
+
+.left-column { flex: 1 1 55%; min-width: 350px; }
+.right-column { flex: 1 1 45%; min-width: 350px; }
+
+/* ===================== Cards & Sections ===================== */
+.task-section,
+.heuristics-section,
+.heuristics-explanation,
+.defects-section,
+.feedback-section,
+.demo-sidebar,
+.demo-main {
+    background-color: var(--color-bg-card);
+    padding: 15px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    margin-bottom: var(--gap);
+    box-sizing: border-box;
+}
+
+/* ===================== Code Blocks ===================== */
 .code-block {
-    background-color: #f0f0f0;
+    background-color: var(--color-bg-code);
     padding: 10px;
     border-radius: 5px;
     overflow-x: auto;
     font-family: monospace;
 }
 
-/* -------------------- Defect Cards & Buttons -------------------- */
+/* ===================== Defect Cards ===================== */
 .defect-button {
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-    justify-content: flex-start;
-    background-color: #dcdcdc;
+    width: 100%;
     padding: 15px;
     margin-bottom: 15px;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    background-color: var(--color-btn);
     cursor: pointer;
-
-    width: 100%;
-    box-sizing: border-box;
-    overflow: hidden; /* prevent content overflow */
-}
-
-.defect-button.highlighted {
-    background-color: #d1ffd1;
-    border: 2px solid #4CAF50;
-}
-
-.defect-content-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    width: 100%;
-    min-width: 0;
-}
-
-.defect-fix-block {
-    display: flex;
-    flex-direction: row;
-    gap: 10px;
-    align-items: flex-start;
-    width: 100%;
-    max-width: 100%;
-    overflow: hidden;
-}
-
-.defect-fix-block pre {
-    flex: 1 1 50%;
-    min-width: 0;
-    overflow-x: auto;
-    word-break: break-word;
-    background-color: #f0f0f0;
-    padding: 10px;
-    border-radius: 5px;
-    font-family: monospace;
-    margin: 0;
-}
-
-/* Optional: on small screens, stack vertically */
-@media screen and (max-width: 768px) {
-    .defect-fix-block {
-        flex-direction: column;
-    }
-}
-
-
-/* -------------------- Defect Examples / Collapsible Sections -------------------- */
-.defect-examples summary {
-    cursor: pointer;
-    font-weight: bold;
-    padding: 5px 0;
-}
-
-.defect-examples summary::after {
-    content: " ▼";
-    float: right;
-}
-
-.defect-examples[open] summary::after {
-    content: " ▲";
-}
-
-.defect-examples pre.code-block {
-    margin-top: 10px;
-    background-color: #f0f0f0;
-    padding: 10px;
-    border-radius: 5px;
-    overflow-x: auto;
-    font-family: monospace;
-}
-
-/* -------------------- Select Buttons -------------------- */
-.defect-select-button {
-    margin-top: 10px;
-    background-color: #b2dfdb;
-    border: none;
-    border-radius: 6px;
-    padding: 8px;
-    cursor: pointer;
-    font-weight: bold;
     transition: background-color 0.3s ease;
 }
 
-.defect-select-button:hover {
-    background-color: #80cbc4;
+.defect-button:hover { background-color: var(--color-btn-hover); }
+
+.defect-button.highlighted {
+    background-color: var(--color-bg-highlight);
+    border: 2px solid var(--color-highlight-border);
 }
 
 .defect-button.unclickable {
@@ -218,7 +144,71 @@ p {
     cursor: default;
 }
 
-/* -------------------- Heuristics Table -------------------- */
+.defect-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.defect-fix-block {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.defect-fix-block pre {
+    flex: 1 1 50%;
+    min-width: 0;
+    overflow-x: auto;
+    background-color: var(--color-bg-code);
+    padding: 10px;
+    border-radius: 5px;
+    margin: 0;
+}
+
+/* ===================== Buttons ===================== */
+.large-button,
+.nav-button,
+.defect-select-button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 1em;
+}
+
+.large-button,
+.nav-button,
+.defect-button {
+    background-color: var(--color-btn);
+    color: var(--color-text-primary);
+}
+
+.large-button:hover,
+.nav-button:hover,
+.defect-button:hover {
+    background-color: var(--color-btn-hover);
+}
+
+.defect-select-button {
+    background-color: var(--color-btn-select);
+    font-weight: bold;
+}
+
+.defect-select-button:hover {
+    background-color: var(--color-btn-select-hover);
+}
+
+.buttons-container,
+.nav-buttons {
+    display: flex;
+    justify-content: center;
+    gap: var(--gap);
+    margin-top: 15px;
+}
+
+/* ===================== Heuristics Table ===================== */
 .heuristics-table {
     width: 100%;
     border-collapse: collapse;
@@ -227,7 +217,8 @@ p {
     margin-top: 10px;
 }
 
-.heuristics-table th, .heuristics-table td {
+.heuristics-table th,
+.heuristics-table td {
     border: 1px solid #555;
     padding: 6px;
     text-align: center;
@@ -238,31 +229,35 @@ p {
     font-weight: bold;
 }
 
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.table-wrapper table {
+    width: 100%;
+    min-width: 600px;
+}
+
 .level-very-low { background-color: #e0f2f1; }
 .level-low { background-color: #b2dfdb; }
-.level-medium { background-color: #ffffff; }
+.level-medium { background-color: #ffffff6a; }
 .level-high { background-color: #80cbc4; }
 .level-very-high { background-color: #26a69a; }
 
 .level-much-lower { background-color: #d1c4e9; }
 .level-lower { background-color: #b39ddb; }
-.level-average { background-color: #ffffff; }
+.level-average { background-color: #ffffff6a; }
 .level-higher { background-color: #ffe082; }
 .level-much-higher { background-color: #ffca28; }
 
-/* -------------------- Comment Section -------------------- */
+/* ===================== Comments ===================== */
 .comment-section {
     margin-top: 25px;
-    text-align: left;
 }
 
-.comment-section h3 {
-    font-size: 1.1em;
-    color: #333;
-    margin-bottom: 8px;
-}
-
-.comment-box {
+.comment-box,
+.feedback-section textarea.feedback-box {
     width: 100%;
     min-height: 100px;
     padding: 10px;
@@ -275,109 +270,39 @@ p {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.comment-box:focus {
-    border-color: #888;
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
-    outline: none;
-}
-
-/* -------------------- Feedback Section -------------------- */
-.feedback-section {
-    width: 100%;
-    background-color: #c5d5ef;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    box-sizing: border-box;
-    text-align: center;
-}
-
-.feedback-section h2 {
-    margin-top: 0;
-    margin-bottom: 8px;
-    font-size: 1.2em;
-    color: #333;
-}
-
-.feedback-section p {
-    margin-bottom: 12px;
-    color: #555;
-    font-size: 1em;
-}
-
-.feedback-section textarea {
-    width: 100%;
-    min-height: 80px;
-    padding: 10px;
-    font-size: 1em;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    resize: vertical;
-    box-sizing: border-box;
-    font-family: inherit;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.feedback-section textarea:focus {
+.comment-box:focus,
+.feedback-section textarea.feedback-box:focus {
     border-color: #888;
     box-shadow: 0 0 4px rgba(0,0,0,0.1);
     outline: none;
 }
 
-.feedback-section button {
-    display: inline-block;
-    margin-top: 10px;
-    padding: 8px 16px;
-    font-size: 1em;
-    background-color: #dcdcdc; /* matches defect buttons */
-    color: #333;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+/* ===================== Feedback ===================== */
+.feedback-section {
+    background-color: var(--color-bg-feedback);
+    text-align: center;
 }
 
-.feedback-section button:hover {
-    background-color: #c0c0c0;
-}
-
-/* -------------------- Heuristics Explanation -------------------- */
-.heuristics-explanation {
-    background-color: #f5faff;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
-    box-sizing: border-box;
-}
-.heuristics-explanation h3 {
-    margin-top: 0;
-}
-
-
-/* -------------------- Demo Page -------------------- */
+/* ===================== Demo Page ===================== */
 .demo-layout {
     display: flex;
-    gap: 20px;
+    gap: var(--gap);
     margin: 20px auto;
     max-width: 1400px;
 }
 
 .demo-sidebar {
     width: 30%;
-    background-color: #fff5f5;
     border-left: 4px solid #cc0000;
     padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    background-color: var(--color-bg-demo-sidebar);
 }
 
 .demo-main {
     width: 70%;
     display: flex;
     flex-direction: column;
-    gap: 25px;
+    gap: var(--gap);
 }
 
 .demo-badge {
@@ -390,33 +315,29 @@ p {
     margin-bottom: 6px;
 }
 
-.demo-section-block {
-    background-color: #fff8f8;
-    padding: 10px;
-    border-left: 4px solid #cc0000;
-    border-radius: 6px;
-}
-
-
-/* -------------------- Responsive Design -------------------- */
+/* ===================== Responsive ===================== */
 @media screen and (max-width: 768px) {
-    .survey-content {
+    .survey-content,
+    .two-column-layout,
+    .demo-layout {
         flex-direction: column;
     }
 
-    .task-section, .defects-section {
+    .left-column,
+    .right-column,
+    .task-section,
+    .defects-section,
+    .heuristics-section,
+    .heuristics-explanation {
         width: 100%;
-        padding: 10px;
+        min-width: 0;
     }
 
-    .buttons-container, .nav-buttons {
+    .buttons-container,
+    .nav-buttons {
         flex-direction: column;
         gap: 10px;
     }
 
-    /* Stack Example + Fix vertically on small screens */
-    .defect-fix-block {
-        flex-direction: column;
-        gap: 10px;
-    }
+    .defect-fix-block { flex-direction: column; gap: 10px; }
 }

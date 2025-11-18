@@ -2,34 +2,74 @@
 
 from .survey_logic import map_score
 
+CSS_RELATIVE_PATH = "../css/defects.css"  # relative to /public_html
+
+
 # ============================================================
-# =======================  TASK SECTION  ======================
+# =====================  LAYOUT HELPER =======================
+# ============================================================
+
+
+def two_column_layout(left: list[str], right: list[str]) -> str:
+    """Render a responsive two-column layout for survey pages.
+
+    Left column typically contains task + heuristics.
+    Right column contains defects, feedback, or related content.
+    """
+    return f"""
+    <div class="two-column-layout">
+        <div class="left-column">
+            {"".join(left)}
+        </div>
+        <div class="right-column">
+            {"".join(right)}
+        </div>
+    </div>
+    """
+
+
+# ============================================================
+# ======================  TASK SECTION  ======================
 # ============================================================
 
 
 def render_task_section(question: dict, defects: list, heuristics: list) -> str:
-    """Render the task section: instructions, code, context table."""
+    """Render the task section: instructions and code only."""
     html = [
         f"""
         <section class="task-section">
             <h3>({question["index"]}) {question["task name"]}</h3>
             <p><strong>Instructions:</strong> {question["instructions"]}</p>
             <pre class="code-block"><code>{question["submission"]}</code></pre>
+        </section>
         """
     ]
-    html.append('<div class="context-section"><h3>Defect Context by Heuristic</h3>')
-    html.append(render_context_table(defects, heuristics))
-    html.append(render_heuristic_explanation())
-    html.append("</div></section>")
     return "".join(html)
 
 
-def render_context_table(defects: list, heuristics: list) -> str:
+# ============================================================
+# ====================  HEURISTICS SECTION ===================
+# ============================================================
+
+
+def render_heuristics_section(defects: list, heuristics: list) -> str:
+    """Render heuristics table + explanation as a separate section."""
+    html = ['<section class="heuristics-section">']
+    html.append("<h3>Heuristics Overview</h3>")
+    html.append(render_heuristics_table(defects, heuristics))
+    html.append(render_heuristic_explanation())
+    html.append("</section>")
+    return "".join(html)
+
+
+def render_heuristics_table(defects: list, heuristics: list) -> str:
     """Render an HTML table showing heuristic context for each defect."""
     if not defects or not heuristics:
         return "<p>No context available.</p>"
 
-    html = ['<table class="heuristics-table" style="width:100%; border-collapse: collapse;">']
+    html = [
+        '<div class="table-wrapper"><table class="heuristics-table" style="width:100%; border-collapse: collapse;">'
+    ]
     html.append("<thead><tr><th class='cell cell-left'>Defect</th>")
     for h in heuristics:
         tooltip = f"{h.get('description', '')} (Scale: {h.get('scale', '1-5')})"
@@ -44,7 +84,7 @@ def render_context_table(defects: list, heuristics: list) -> str:
             html.append(f"<td class='cell {css_class}'>{label}</td>")
         html.append("</tr>")
 
-    html.append("</tbody></table>")
+    html.append("</tbody></table></div>")
     return "".join(html)
 
 
@@ -77,8 +117,40 @@ def render_heuristic_explanation() -> str:
 
 
 # ============================================================
-# ======================  DEFECT SECTION  =====================
+# ====================  DEFECTS SECTION  =====================
 # ============================================================
+
+
+def render_defects_section(
+    defects: list,
+    question_index: str,
+    is_clickable: bool = True,
+    show_comment_box: bool = False,
+    defect_vote_counts: dict | None = None,
+) -> str:
+    """Render all defects as cards with options for clickable, votes display, highlighting, and the comment box."""
+    if not defects:
+        return "<p>No defects available.</p>"
+
+    # Determine most-voted defect for highlighting
+    most_votes = 0
+    if defect_vote_counts is not None:
+        most_votes = max(defect_vote_counts.values())
+
+    html = ['<section class="defects-section">']
+    html.append('<form action="defects.py?page=survey" method="post" class="defect-form">')
+
+    for defect in defects:
+        votes = defect_vote_counts.get(defect["defect id"], 0) if defect_vote_counts is not None else None
+        highlight = votes == most_votes and votes > 0
+        html.append(render_defect_button(defect, is_clickable=is_clickable, highlight=highlight, votes=votes))
+
+    if show_comment_box:
+        html.append(render_comment_box(disabled=not is_clickable))
+    html.append(f'<input type="hidden" name="question_id" value="{question_index}">')
+    html.append("</form></section>")
+
+    return "".join(html)
 
 
 def render_comment_box(disabled: bool = False) -> str:
@@ -142,29 +214,9 @@ def render_defect_button(
     return "".join(html)
 
 
-def render_survey_defects_section(defects: list, question_index: str, is_clickable: bool = True) -> str:
-    """Render all defects as clickable (or disabled) cards plus a comment box."""
-    if not defects:
-        return "<p>No defects available.</p>"
-
-    html = ['<section class="defects-section">']
-    html.append('<form action="defects.py?page=survey" method="post" class="defect-form">')
-
-    for defect in defects:
-        html.append(render_defect_button(defect, is_clickable=is_clickable))
-
-    html.append(render_comment_box(disabled=not is_clickable))
-    html.append(f'<input type="hidden" name="question_id" value="{question_index}">')
-    html.append("</form></section>")
-
-    return "".join(html)
-
-
 # ============================================================
 # =====================  PAGE WRAPPER  =======================
 # ============================================================
-
-CSS_RELATIVE_PATH = "../css/defects.css"  # relative to /public_html
 
 
 def render_html_page(title: str, body_content: str) -> str:
