@@ -37,11 +37,9 @@ def survey(data_path: Path, form: cgi.FieldStorage):
     show_feedback_prompt = not feedback_just_submitted and survey_logic.is_feedback_checkpoint(data_path, user_id)
 
     # Retrieve next question
-    questions = survey_logic.get_unanswered_questions(data_path, user_id)
-    if not questions:
+    question = survey_logic.get_next_question(data_path, user_id)
+    if question is None:
         return show_thank_you_page()
-
-    question = questions[0]
 
     defects = survey_logic.get_defects_for_submission(data_path, question["index"])
     heuristics = data_access.load_csv(data_path / "heuristics.csv")

@@ -7,8 +7,9 @@ selecting questions, and recording survey answers.
 
 import http.cookies
 import os
+import random
 import uuid
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -140,10 +141,51 @@ def get_unanswered_questions(data_path: Path, user_id: str) -> List[Dict]:
     return unanswered
 
 
-def select_next_question(data_path: Path, user_id: str) -> Optional[Dict]:
-    """Deterministically pick the next unanswered question (first by sorted index)."""
-    unanswered = get_unanswered_questions(data_path, user_id)
-    return unanswered[0] if unanswered else None
+def get_next_question(data_path: Path, user_id: str) -> dict | None:
+    """
+    Return the next question for the user.
+
+    - Unanswered questions first
+    - Otherwise, select the question with highest uncertainty score (combines # of votes and consensus)
+    """
+    total_responses = {}
+    user_answered = set()
+
+    responses = load_csv(data_path / "responses.csv")
+    for row in responses:
+        if row.get("respondent") == user_id:
+            user_answered.add(row["submission id"])
+        try:
+            total_responses[row["submission id"]].append(row["answer"])
+        except KeyError:
+            total_responses[row["submission id"]] = [row["answer"]]
+
+    submissions = load_csv(data_path / "submissions.csv")
+
+    # look for completely unanswered questions
+    never_answered_questions = [s for s in submissions if s.get("index") not in total_responses]
+    if len(never_answered_questions) > 0:
+        return random.choice(never_answered_questions)
+
+    # eligible questions
+    user_unanswered_questions = [s for s in submissions if s.get("index") not in user_answered]
+
+    if len(user_unanswered_questions) == 0:
+        return None
+
+    # Compute uncertainty for each question
+    uncertainty_scores = []
+    for question in user_unanswered_questions:
+        votes = total_responses[row["submission id"]]
+        total_votes = len(votes)
+        most_common_answer_count = Counter(votes).most_common(1)[0][1]
+        consensus = most_common_answer_count / total_votes
+        score = (1 / (1 + total_votes)) + (1 - consensus)  # uncertainty formula
+        uncertainty_scores.append((score, question))
+
+    # Return the question with the highest uncertainty
+    _, next_question = max(uncertainty_scores, key=lambda x: x[0])
+    return next_question
 
 
 def get_defects_for_submission(data_path: Path, submission_id: str) -> List[Dict]:
