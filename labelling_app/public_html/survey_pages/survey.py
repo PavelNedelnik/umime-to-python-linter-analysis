@@ -1,7 +1,5 @@
 """Survey page logic — display questions, collect answers, and handle comments."""
 
-import cgi
-import random
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -12,9 +10,8 @@ from .utils import data_access, shared_components, survey_logic
 # ============================================================
 
 
-def survey(data_path: Path, form: cgi.FieldStorage):
-    """Display a survey question, record the user's responses, and handle feedback prompts."""
-    # Collect initial request data
+def survey(data_path: Path, form) -> str:
+    """Return survey page HTML with question, defects, and optional feedback."""
     user_id = survey_logic.get_user_id()
     user_choice = form.getvalue("choice")
     question_id = form.getvalue("question_id")
@@ -26,14 +23,13 @@ def survey(data_path: Path, form: cgi.FieldStorage):
     if feedback:
         survey_logic.save_feedback(data_path, user_id, feedback)
         params = urlencode({"page": "survey", "feedback_submitted": "1"})
-        print(f"<meta http-equiv='refresh' content='0; url=defects.py?{params}'>")
-        return
+        return f"<meta http-equiv='refresh' content='0; url=defects.py?{params}'>"
 
-    # Record answer to previous question (if provided)
+    # Record answer to previous question
     if user_choice:
         survey_logic.save_answer(data_path, user_id, question_id, user_choice, comment)
 
-    # Determine whether to show periodic feedback prompt
+    # Determine whether to show feedback prompt
     show_feedback_prompt = not feedback_just_submitted and survey_logic.is_feedback_checkpoint(data_path, user_id)
 
     # Retrieve next question
@@ -44,16 +40,14 @@ def survey(data_path: Path, form: cgi.FieldStorage):
     defects = survey_logic.get_defects_for_submission(data_path, question["index"])
     heuristics = data_access.load_csv(data_path / "heuristics.csv")
 
-    # Render Page
-    print(render_header())
-
+    html = [render_header()]
     if show_feedback_prompt:
-        print(render_feedback_prompt())
-
-    print("<div class='survey-content'>")
-    print(shared_components.render_task_section(question, defects, heuristics))
-    print(shared_components.render_survey_defects_section(defects, question["index"]))
-    print("</div></div>")  # Close .survey-content and overall container
+        html.append(render_feedback_prompt())
+    html.append("<div class='survey-content'>")
+    html.append(shared_components.render_task_section(question, defects, heuristics))
+    html.append(shared_components.render_survey_defects_section(defects, question["index"]))
+    html.append("</div></div>")  # Close survey-content and container
+    return "".join(html)
 
 
 # ============================================================
@@ -91,9 +85,9 @@ def render_feedback_prompt() -> str:
     """
 
 
-def show_thank_you_page():
+def show_thank_you_page() -> str:
     """Display a completion message when all questions are done."""
-    print("""
+    return """
     <div class="survey-container">
         <div class="survey-header">
             <button onclick="window.location.href='defects.py'" class="nav-button">Exit</button>
@@ -102,4 +96,4 @@ def show_thank_you_page():
             <p>You have answered all available questions in the survey.</p>
         </div>
     </div>
-    """)
+    """

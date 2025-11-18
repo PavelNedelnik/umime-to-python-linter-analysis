@@ -158,3 +158,27 @@ def render_survey_defects_section(defects: list, question_index: str, is_clickab
     html.append("</form></section>")
 
     return "".join(html)
+
+
+# ============================================================
+# =====================  PAGE WRAPPER  =======================
+# ============================================================
+
+CSS_RELATIVE_PATH = "../css/defects.css"  # relative to /public_html
+
+
+def render_html_page(title: str, body_content: str) -> str:
+    """Wrap body content in a full HTML page with head and CSS."""
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <link rel="stylesheet" type="text/css" href="{CSS_RELATIVE_PATH}">
+</head>
+<body>
+{body_content}
+</body>
+</html>
+"""

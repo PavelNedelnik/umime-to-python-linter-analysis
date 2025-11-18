@@ -13,18 +13,17 @@ import uuid
 from pathlib import Path
 
 from survey_pages import demo, landing, results, survey
+from survey_pages.utils.shared_components import render_html_page
 
 # ============================================================
-# ====================  CONFIGURATION  ========================
+# ====================  CONFIGURATION  =======================
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_PATH = BASE_DIR / "survey_data" / "ipython_0.0.0"
-CSS_RELATIVE_PATH = "../css/defects.css"  # relative to /public_html
-
 
 # ============================================================
-# ====================  DATA FILE SETUP  ======================
+# ====================  DATA FILE SETUP  =====================
 # ============================================================
 
 responses_file = DATA_PATH / "responses.csv"
@@ -37,17 +36,12 @@ if not feedback_file.exists():
     with open(feedback_file, mode="a", newline="", encoding="utf-8") as f:
         f.write("timestamp;respondent;feedback\n")
 
-
-# ============================================================
-# =======================  OUTPUT SETUP  ======================
-# ============================================================
-
 # Ensure UTF-8 output
 sys.stdout.reconfigure(encoding="utf-8")
 
 
 # ============================================================
-# =====================  COOKIE HANDLING  =====================
+# =====================  COOKIE HANDLING  ====================
 # ============================================================
 
 cookie = http.cookies.SimpleCookie()
@@ -61,15 +55,6 @@ else:
     cookie["user_id"] = user_id
     cookie["user_id"]["path"] = "/"
     cookie["user_id"]["max-age"] = 3600  # 1 hour
-
-
-# ============================================================
-# ========================  HEADERS  ==========================
-# ============================================================
-
-print("Content-Type: text/html; charset=utf-8")
-print(cookie.output())
-print()
 
 
 # ============================================================
@@ -92,27 +77,22 @@ page_title = page_titles.get(page, "Survey")
 # =======================  HTML OUTPUT  =======================
 # ============================================================
 
-print(f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{page_title}</title>
-    <link rel="stylesheet" type="text/css" href="{CSS_RELATIVE_PATH}">
-</head>
-<body>
-""")
+# headers:
+print("Content-Type: text/html; charset=utf-8")
+print(cookie.output())
+print()
 
 # Select the appropriate page
+content = landing()
 if page == "survey":
-    survey(DATA_PATH, form)
+    content = survey(DATA_PATH, form)
 elif page == "results":
-    results(DATA_PATH, form)
+    content = results(DATA_PATH, form)
 elif page == "demo":
-    demo(DATA_PATH)
-else:
-    landing()
+    content = demo(DATA_PATH)
 
+# Wrap content in a full HTML page with head and CSS
+print(render_html_page(page_title, content))
 
 # end of file
 print("</body></html>")

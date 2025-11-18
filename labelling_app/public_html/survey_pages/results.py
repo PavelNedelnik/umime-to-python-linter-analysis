@@ -1,6 +1,5 @@
 """Results page logic — display votes, highlights, and context."""
 
-import cgi
 from pathlib import Path
 
 from .utils import data_access, shared_components, survey_logic
@@ -10,9 +9,8 @@ from .utils import data_access, shared_components, survey_logic
 # ============================================================
 
 
-def results(data_path: Path, form: cgi.FieldStorage):
-    """Display survey results with vote-based highlights."""
-    # --- Collect data ---
+def results(data_path: Path, form) -> str:
+    """Return survey results HTML with vote-based highlights."""
     question_index = int(form.getvalue("question_index", 0))
     submissions = data_access.load_csv(data_path / "submissions.csv")
 
@@ -20,18 +18,17 @@ def results(data_path: Path, form: cgi.FieldStorage):
         return show_no_results_page()
 
     question = submissions[question_index]
-
     defects = survey_logic.get_defects_for_submission(data_path, question["index"])
     defect_counts = survey_logic.get_defect_counts(data_path, question["index"])
     heuristics = data_access.load_csv(data_path / "heuristics.csv")
 
-    # --- Render page components ---
-    print(render_navigation_bar(submissions, question_index))
-    print(shared_components.render_task_section(question, defects, heuristics))
-    print(render_results_defects_section(defects, defect_counts))
-
-    # Close wrapper divs
-    print("</div></div>")
+    html = [
+        render_navigation_bar(submissions, question_index),
+        shared_components.render_task_section(question, defects, heuristics),
+        render_results_defects_section(defects, defect_counts),
+        "</div></div>",  # close survey-content and container
+    ]
+    return "".join(html)
 
 
 # ============================================================
@@ -39,7 +36,7 @@ def results(data_path: Path, form: cgi.FieldStorage):
 # ============================================================
 
 
-def render_navigation_bar(submissions, question_index):
+def render_navigation_bar(submissions, question_index) -> str:
     """Render the navigation bar for the results page."""
     return """
     <div class="survey-container">
@@ -66,7 +63,6 @@ def render_results_defects_section(defects: list, defect_counts: dict) -> str:
         return "<p>No defects available.</p>"
 
     most_votes = max(defect_counts.values(), default=0)
-
     html = ['<section class="defects-section"><form class="defect-form">']
     for defect in defects:
         votes = defect_counts.get(defect["defect id"], 0)
@@ -78,9 +74,9 @@ def render_results_defects_section(defects: list, defect_counts: dict) -> str:
     return "".join(html)
 
 
-def show_no_results_page():
+def show_no_results_page() -> str:
     """Display when no results are available."""
-    print("""
+    return """
     <div class="survey-container">
         <div class="survey-header">
             <button onclick="window.location.href='defects.py'" class="nav-button">Exit</button>
@@ -89,4 +85,4 @@ def show_no_results_page():
             <p>No questions are available.</p>
         </div>
     </div>
-    """)
+    """

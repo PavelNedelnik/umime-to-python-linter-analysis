@@ -7,25 +7,30 @@ from .utils import data_access, shared_components, survey_logic
 # ============================================================
 
 
-def demo(data_path):
-    """Render an instructional demo matching the real survey layout."""
+def demo(data_path) -> str:
+    """Return the full demo page HTML as a string."""
     questions = data_access.get_submissions(data_path)
+    if not questions:
+        return "<p>No demo submissions available.</p>"
 
     question = questions[0]
     defects = survey_logic.get_defects_for_submission(data_path, question["index"])
     heuristics = data_access.load_csv(data_path / "heuristics.csv")
 
-    print(render_demo_header())
+    html = [
+        render_demo_header(),
+        '<div class="survey-content">',
+        render_demo_instructions(),
+        shared_components.render_task_section(question, defects, heuristics),
+        shared_components.render_survey_defects_section(defects, question["index"], is_clickable=False),
+        "</div>",  # close survey-content
+    ]
 
-    print('<div class="survey-content">')
-    print(render_demo_instructions())
-    print(shared_components.render_task_section(question, defects, heuristics))
-    print(shared_components.render_survey_defects_section(defects, question["index"], is_clickable=False))
-    print("</div>")  # close survey-content
+    return "".join(html)
 
 
 # ============================================================
-# ====================  PAGE COMPONENTS  ======================
+# ====================  PAGE COMPONENTS  =====================
 # ============================================================
 
 
@@ -55,9 +60,8 @@ def render_demo_instructions() -> str:
         <p><strong>2. Compare it with the list of defects.</strong></p>
         <p><strong>3. Choose the defect that best describes the main issue.</strong></p>
 
-        <p>All components here—the task panel, context table, and defect cards—
-        are the same ones used in the actual survey. The only difference is
-        that selections are disabled.</p>
+        <p>All components here—the task panel, context table, and defect cards—are
+        the same ones used in the actual survey. The only difference is that selections are disabled.</p>
 
         <section class="buttons-container">
             <button onclick="window.location.href='defects.py'" class="nav-button">Back to the Landing Page</button>
