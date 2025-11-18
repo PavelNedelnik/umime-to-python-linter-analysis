@@ -1,5 +1,9 @@
 #!C:\Python312\python.exe
-"""Main entry point for the CGI script. Handles selecting the appropriate page of the survey and tracking user sessions."""
+"""
+Main entry point for the CGI script.
+
+Handles selecting the appropriate page of the survey and tracking user sessions.
+"""
 
 import cgi
 import http.cookies
@@ -8,15 +12,21 @@ import sys
 import uuid
 from pathlib import Path
 
-# Import page modules
 from survey_pages import demo, landing, results, survey
 
-# --- Configuration ---
+# ============================================================
+# ====================  CONFIGURATION  ========================
+# ============================================================
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_PATH = BASE_DIR / "survey_data" / "ipython_0.0.0"
 CSS_RELATIVE_PATH = "../css/defects.css"  # relative to /public_html
 
-# --- Ensure logging files exist ---
+
+# ============================================================
+# ====================  DATA FILE SETUP  ======================
+# ============================================================
+
 responses_file = DATA_PATH / "responses.csv"
 if not responses_file.exists():
     with open(responses_file, mode="a", newline="", encoding="utf-8") as f:
@@ -27,10 +37,19 @@ if not feedback_file.exists():
     with open(feedback_file, mode="a", newline="", encoding="utf-8") as f:
         f.write("timestamp;respondent;feedback\n")
 
-# --- UTF-8 output ---
+
+# ============================================================
+# =======================  OUTPUT SETUP  ======================
+# ============================================================
+
+# Ensure UTF-8 output
 sys.stdout.reconfigure(encoding="utf-8")
 
-# --- Handle cookies / user ID ---
+
+# ============================================================
+# =====================  COOKIE HANDLING  =====================
+# ============================================================
+
 cookie = http.cookies.SimpleCookie()
 if "HTTP_COOKIE" in os.environ:
     cookie.load(os.environ["HTTP_COOKIE"])
@@ -43,16 +62,23 @@ else:
     cookie["user_id"]["path"] = "/"
     cookie["user_id"]["max-age"] = 3600  # 1 hour
 
-# --- Prepare output headers ---
+
+# ============================================================
+# ========================  HEADERS  ==========================
+# ============================================================
+
 print("Content-Type: text/html; charset=utf-8")
 print(cookie.output())
 print()
 
-# --- Determine which page to show ---
+
+# ============================================================
+# ==================  PAGE SELECTION LOGIC  ==================
+# ============================================================
+
 form = cgi.FieldStorage()
 page = form.getvalue("page", "landing")
 
-# Choose a dynamic title
 page_titles = {
     "landing": "Survey Overview",
     "survey": "Survey Questions",
@@ -61,7 +87,11 @@ page_titles = {
 }
 page_title = page_titles.get(page, "Survey")
 
-# --- HTML page wrapper ---
+
+# ============================================================
+# =======================  HTML OUTPUT  =======================
+# ============================================================
+
 print(f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -73,7 +103,7 @@ print(f"""<!DOCTYPE html>
 <body>
 """)
 
-# --- Route to correct page ---
+# Select the appropriate page
 if page == "survey":
     survey(DATA_PATH, form)
 elif page == "results":
@@ -83,4 +113,6 @@ elif page == "demo":
 else:
     landing()
 
+
+# end of file
 print("</body></html>")

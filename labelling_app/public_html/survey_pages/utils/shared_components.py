@@ -2,7 +2,9 @@
 
 from .survey_logic import map_score
 
-# -------------------- Task Section --------------------
+# ============================================================
+# =======================  TASK SECTION  ======================
+# ============================================================
 
 
 def render_task_section(question: dict, defects: list, heuristics: list) -> str:
@@ -47,13 +49,13 @@ def render_context_table(defects: list, heuristics: list) -> str:
 
 
 def render_heuristic_explanation() -> str:
-    """Educator-friendly explanation of heuristic models, displayed below the table."""
+    """Educator-friendly explanation of heuristic models."""
     return """
     <section class="heuristics-explanation">
         <h3>How the Models Work</h3>
         <p>
-            Defects are prioritized using patterns from the assignment, the student’s history,
-            and educator-rated severity.
+            Defects are prioritized using patterns from the assignment,
+            the student’s history, and educator-rated severity.
         </p>
 
         <table class="heuristics-table">
@@ -61,45 +63,26 @@ def render_heuristic_explanation() -> str:
                 <tr><th>Heuristic</th><th>Meaning</th></tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>Task: Common Defects</td>
-                    <td>Frequent errors across students on this task</td>
-                </tr>
-                <tr>
-                    <td>Task: Characteristic Defects</td>
-                    <td>Unique mistakes tied to this specific task</td>
-                </tr>
-                <tr>
-                    <td>Student: Frequency</td>
-                    <td>Persistent individual mistakes</td>
-                </tr>
-                <tr>
-                    <td>Student: Characteristic Defect</td>
-                    <td>Personal learning gaps</td>
-                </tr>
-                <tr>
-                    <td>Student: Encountered Before</td>
-                    <td>Reinforces previously seen mistakes</td>
-                </tr>
-                <tr>
-                    <td>Defect Multiplicity</td>
-                    <td>Indicates fundamental misunderstandings</td>
-                </tr>
-                <tr>
-                    <td>Baseline: Severity</td>
-                    <td>Overall seriousness of the defect</td>
-                </tr>
+                <tr><td>Task: Common Defects</td><td>Frequent errors on this task</td></tr>
+                <tr><td>Task: Characteristic Defects</td><td>Unique mistakes tied to this task</td></tr>
+                <tr><td>Student: Frequency</td><td>Persistent individual mistakes</td></tr>
+                <tr><td>Student: Characteristic Defect</td><td>Personal learning gaps</td></tr>
+                <tr><td>Student: Encountered Before</td><td>Previously seen mistakes</td></tr>
+                <tr><td>Defect Multiplicity</td><td>Indicates fundamental misunderstandings</td></tr>
+                <tr><td>Baseline: Severity</td><td>Overall seriousness of the defect</td></tr>
             </tbody>
         </table>
     </section>
     """
 
 
-# -------------------- Defect Section --------------------
+# ============================================================
+# ======================  DEFECT SECTION  =====================
+# ============================================================
 
 
 def render_comment_box(disabled: bool = False) -> str:
-    """Render a comment box to be included in the survey defects section."""
+    """Render a comment box for survey submissions."""
     attribute = ""
     instructions = "Will be submitted with the response"
     if disabled:
@@ -126,7 +109,7 @@ def render_defect_fix_block(defect: dict) -> str:
 
 
 def render_defect_content(defect: dict, votes: int | None = None) -> str:
-    """Render the inner content of a defect card: name, description, examples, etc."""
+    """Render name, description, examples, and optional vote counts."""
     html = [
         "<div class='defect-content-wrapper'>",
         "<div class='defect-info'>",
@@ -142,7 +125,7 @@ def render_defect_content(defect: dict, votes: int | None = None) -> str:
 def render_defect_button(
     defect: dict, is_clickable: bool = True, highlight: bool = False, votes: int | None = None
 ) -> str:
-    """Render a single defect as a button."""
+    """Render a single defect card as a button."""
     classes = ["defect-button"]
     if highlight:
         classes.append("highlighted")
@@ -160,7 +143,7 @@ def render_defect_button(
 
 
 def render_survey_defects_section(defects: list, question_index: str, is_clickable: bool = True) -> str:
-    """Render defects as selectable buttons with an attached comment box."""
+    """Render all defects as clickable (or disabled) cards plus a comment box."""
     if not defects:
         return "<p>No defects available.</p>"
 
@@ -170,7 +153,6 @@ def render_survey_defects_section(defects: list, question_index: str, is_clickab
     for defect in defects:
         html.append(render_defect_button(defect, is_clickable=is_clickable))
 
-    # Add comment box
     html.append(render_comment_box(disabled=not is_clickable))
     html.append(f'<input type="hidden" name="question_id" value="{question_index}">')
     html.append("</form></section>")

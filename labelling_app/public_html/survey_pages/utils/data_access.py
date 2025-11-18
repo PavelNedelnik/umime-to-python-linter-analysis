@@ -10,30 +10,28 @@ import csv
 from pathlib import Path
 from typing import Dict, List
 
+# ============================================================
+# =====================  CSV OPERATIONS  ======================
+# ============================================================
+
 
 def load_csv(path: Path) -> List[Dict]:
-    """
-    Load a CSV file into a list of dictionaries.
-
-    :param path: Path to the CSV file.
-    :return: List of dicts representing rows in the CSV.
-    """
+    """Load a CSV file into a list of dictionaries."""
     with open(path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter=";")
         return list(reader)
 
 
 def save_csv_row(path: Path, fieldnames: list[str], row: dict):
-    """
-    Append a row to a CSV file, creating it if necessary.
-
-    :param path: Path to the CSV file.
-    :param fieldnames: List of column headers.
-    :param row: Dictionary containing the row data.
-    """
+    """Append a row to a CSV file, creating it if necessary."""
     with open(path, "a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter=";")
         writer.writerow(row)
+
+
+# ============================================================
+# =====================  DATA RETRIEVAL  ======================
+# ============================================================
 
 
 def get_submissions(data_path: Path) -> list[dict]:

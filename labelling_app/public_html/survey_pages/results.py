@@ -5,6 +5,10 @@ from pathlib import Path
 
 from .utils import data_access, shared_components, survey_logic
 
+# ============================================================
+# =========================  ROUTE  ==========================
+# ============================================================
+
 
 def results(data_path: Path, form: cgi.FieldStorage):
     """Display survey results with vote-based highlights."""
@@ -26,7 +30,13 @@ def results(data_path: Path, form: cgi.FieldStorage):
     print(shared_components.render_task_section(question, defects, heuristics))
     print(render_results_defects_section(defects, defect_counts))
 
-    print("</div></div>")  # survey-content + container
+    # Close wrapper divs
+    print("</div></div>")
+
+
+# ============================================================
+# =====================  PAGE COMPONENTS  =====================
+# ============================================================
 
 
 def render_navigation_bar(submissions, question_index):
@@ -36,8 +46,10 @@ def render_navigation_bar(submissions, question_index):
         <header class="survey-header">
             <h1>Survey Results</h1>
             <button onclick="window.location.href='defects.py'" class="nav-button">Exit</button>
-            <button onclick="window.location.href='defects.py?page=results&question_index={prev_index}'" class="nav-button" {prev_disabled}>Previous</button>
-            <button onclick="window.location.href='defects.py?page=results&question_index={next_index}'" class="nav-button" {next_disabled}>Next</button>
+            <button onclick="window.location.href='defects.py?page=results&question_index={prev_index}'"
+                    class="nav-button" {prev_disabled}>Previous</button>
+            <button onclick="window.location.href='defects.py?page=results&question_index={next_index}'"
+                    class="nav-button" {next_disabled}>Next</button>
         </header>
         <div class="survey-content">
     """.format(
