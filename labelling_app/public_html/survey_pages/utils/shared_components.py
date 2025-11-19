@@ -55,7 +55,7 @@ def render_task_section(question: dict, defects: list, heuristics: list) -> str:
 def render_heuristics_section(defects: list, heuristics: list) -> str:
     """Render heuristics table + explanation as a separate section."""
     html = ['<section class="heuristics-section">']
-    html.append("<h3>Heuristics Overview</h3>")
+    html.append("<h3>Context Table</h3>")
     html.append(render_heuristics_table(defects, heuristics))
     html.append(render_heuristic_explanation())
     html.append("</section>")
@@ -92,10 +92,9 @@ def render_heuristic_explanation() -> str:
     """Educator-friendly explanation of heuristic models."""
     return """
     <section class="heuristics-explanation">
-        <h3>How the Models Work</h3>
+        <h3>What the Contextual Embeddings Represent</h3>
         <p>
-            Defects are prioritized using patterns from the assignment,
-            the student’s history, and educator-rated severity.
+            See below the intuitions behind the contextual heuristics.
         </p>
 
         <table class="heuristics-table">
@@ -135,7 +134,7 @@ def render_defects_section(
     # Determine most-voted defect for highlighting
     most_votes = 0
     if defect_vote_counts is not None:
-        most_votes = max(defect_vote_counts.values())
+        most_votes = max(defect_vote_counts.values()) if defect_vote_counts else 0
 
     html = ['<section class="defects-section">']
     html.append('<form action="defects.py?page=survey" method="post" class="defect-form">')

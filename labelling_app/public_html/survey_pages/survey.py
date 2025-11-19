@@ -75,40 +75,38 @@ def render_header() -> str:
     return """
     <div class="survey-container">
         <header class="survey-header">
-            <h1>Beginner Code Quality Defects</h1>
-            <p>
-                Analyze the submission and select the most relevant defect.
-                Pay attention to the context.
-            </p>
-            <button onclick="window.location.href='defects.py'" class="nav-button">Exit</button>
+            <h1>Beginner Code Quality Defects Survey</h1>
+            <p>Review the submission below and pick the defect you think is the most important to address first.</p>
+            <p>Pay special attention to the <strong>Context Table</strong> embedding common cosiderations educators make while giving feedback.</p>
+            <button onclick="window.location.href='defects.py'" class="nav-button">Exit Survey</button>
         </header>
     """
 
 
 def render_feedback_prompt() -> str:
-    """Render a feedback box shown periodically during the survey."""
+    """Render a friendly feedback box shown periodically during the survey."""
     return """
     <section class="feedback-section">
-        <h2>Quick Feedback</h2>
-        <p>You've completed several questions! How is the survey experience so far?</p>
+        <h2>Quick Check-In</h2>
+        <p>You're doing great! How is the survey experience going so far?</p>
         <form action="defects.py?page=survey" method="post" class="feedback-form">
             <textarea name="feedback" rows="3" class="feedback-box" placeholder="Your feedback (optional)"></textarea>
             <br>
-            <button type="submit" class="nav-button">Submit Feedback</button>
+            <button type="submit" class="nav-button">Send Feedback</button>
         </form>
     </section>
     """
 
 
 def show_thank_you_page() -> str:
-    """Display a completion message when all questions are done."""
+    """Display a friendly completion message when all questions are done."""
     return """
     <div class="survey-container">
         <div class="survey-header">
-            <button onclick="window.location.href='defects.py'" class="nav-button">Exit</button>
-            <h1>Beginner Code Quality Defects</h1>
-            <h2>Thank you!</h2>
-            <p>You have answered all available questions in the survey.</p>
+            <button onclick="window.location.href='defects.py'" class="nav-button">Exit Survey</button>
+            <h1>Survey Complete</h1>
+            <h2>Thank You!</h2>
+            <p>You've finished all the questions. Your input will help us improve code feedback tools for beginner programmers.</p>
         </div>
     </div>
     """

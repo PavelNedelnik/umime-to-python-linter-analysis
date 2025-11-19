@@ -53,12 +53,13 @@ def render_navigation_bar(submissions, question_index) -> str:
     <div class="survey-container">
         <header class="survey-header">
             <h1>Survey Results</h1>
+            <p>See how educators have highlighted defects and explore the context for each submission.</p>
             <div class="nav-buttons">
                 <button onclick="window.location.href='defects.py'" class="nav-button">Exit</button>
                 <button onclick="window.location.href='defects.py?page=results&question_index={prev_index}'"
-                        class="nav-button" {prev_disabled}>Previous</button>
+                        class="nav-button" {prev_disabled}>Previous Submission</button>
                 <button onclick="window.location.href='defects.py?page=results&question_index={next_index}'"
-                        class="nav-button" {next_disabled}>Next</button>
+                        class="nav-button" {next_disabled}>Next Submission</button>
             </div>
         </header>
     """.format(
@@ -76,8 +77,8 @@ def show_no_results_page() -> str:
         <div class="survey-header">
             <button onclick="window.location.href='defects.py'" class="nav-button">Exit</button>
             <h1>Survey Results</h1>
-            <h2>No Results Found</h2>
-            <p>No questions are available.</p>
+            <h2>Nothing to Show Yet</h2>
+            <p>It looks like no survey data is available at the moment. Please check back later.</p>
         </div>
     </div>
     """

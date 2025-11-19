@@ -47,33 +47,42 @@ def demo(data_path) -> str:
 
 
 def render_demo_header() -> str:
-    """Render the header for the demo page."""
+    """Render the header for the demo page with a welcoming, explanatory tone."""
     return """
     <div class="survey-container">
         <header class="survey-header">
             <h1>Survey Demo & Instructions</h1>
             <p>
-                This demo uses a real student submission. Your task is to select
-                the defect that best describes the main issue in the code.
+                Welcome! This demo shows you exactly how a survey question will appear.
+                You'll see a real student submission along with the potential defects identified in it.
+            </p>
+            <p>
+                Your goal is to understand the layout, the context tables, and the defect cards.
+                In the real survey, clicking a defect will submit your answer—but here, you can freely explore without affecting anything.
             </p>
         </header>
     """
 
 
 def render_demo_instructions() -> str:
-    """Render instructions and navigation buttons."""
+    """Render clear and friendly instructions with navigation buttons for the demo page."""
     return """
     <section class="feedback-section">
-        <h2>How the Survey Works</h2>
+        <h2>Survey Demo Overview</h2>
 
-        <p>This demo shows exactly how each survey question is structured.</p>
+        <p>This demo shows how a survey question will appear using a real student submission. 
+        Nothing you do here will be recorded—it's just for getting familiar with the layout and components.</p>
 
-        <p><strong>1. Review the student’s submission.</strong></p>
-        <p><strong>2. Compare it with the list of defects.</strong></p>
-        <p><strong>3. Choose the defect that best describes the main issue.</strong></p>
+        <p>In this demo, you can explore:</p>
+        <ul>
+            <li><strong>The submission:</strong> See the student's code as it was submitted.</li>
+            <li><strong>Defects:</strong> Browse the potential issues identified in the code.</li>
+            <li><strong>Heuristics:</strong> Understand how defects are contextualized based on common mistakes and educational priorities.</li>
+            <li><strong>Context table:</strong> Compare this submission to others and see the broader learning context.</li>
+            <li><strong>Note:</strong> In the real survey, clicking a defect will submit your answer—but selections are disabled here.</li>
+        </ul>
 
-        <p>All components here—the task panel, context table, and defect cards—are
-        the same ones used in the actual survey. The only difference is that selections are disabled.</p>
+        <p>Take your time exploring. When ready, you can proceed to the real survey to actively select which defect you would highlight first.</p>
 
         <div class="nav-buttons">
             <button onclick="window.location.href='defects.py'" class="nav-button">Back to the Landing Page</button>
