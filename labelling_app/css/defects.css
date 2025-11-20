@@ -1,7 +1,7 @@
 /* ===================== Variables ===================== */
 :root {
     --color-bg-body: #f4f4f4;
-    --color-bg-card: #f5f5f5;
+    --color-bg-card: #f5f5f59a;
     --color-bg-code: #f0f0f0;
     --color-bg-highlight: #d1ffd1;
     --color-bg-feedback: #c5d5ef;
@@ -283,37 +283,21 @@ a {
     text-align: center;
 }
 
-/* ===================== Demo Page ===================== */
-.demo-layout {
-    display: flex;
-    gap: var(--gap);
-    margin: 20px auto;
-    max-width: 1400px;
-}
-
-.demo-sidebar {
-    width: 30%;
-    border-left: 4px solid #cc0000;
-    padding: 20px;
-    background-color: var(--color-bg-demo-sidebar);
-}
-
-.demo-main {
-    width: 70%;
+/* ================ Landing Page Cards ================= */
+.landing-narrow {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: var(--gap);
+    background-color: var(--color-bg-card);
+    padding: 15px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    margin-bottom: var(--gap);
 }
 
-.demo-badge {
-    display: inline-block;
-    background-color: #cc0000;
-    color: white;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-weight: bold;
-    margin-bottom: 6px;
-}
 
 /* ===================== Responsive ===================== */
 @media screen and (max-width: 768px) {
