@@ -200,6 +200,15 @@ a {
     background-color: var(--color-btn-select-hover);
 }
 
+.nav-button.disabled,
+.nav-button:disabled,
+.large-button.disabled,
+.large-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 .buttons-container,
 .nav-buttons {
     display: flex;
