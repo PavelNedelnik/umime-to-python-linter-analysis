@@ -92,26 +92,67 @@ def render_heuristic_explanation() -> str:
     """Educator-friendly explanation of heuristic models."""
     return """
     <section class="heuristics-explanation">
-        <h3>What the Contextual Embeddings Represent</h3>
+        <h3>What the Contextual Heuristics Represent</h3>
         <p>
-            See below the intuitions behind the contextual heuristics.
+            Below is a summary of the heuristics used to contextually frame defects.
         </p>
 
         <table class="heuristics-table">
             <thead>
-                <tr><th>Heuristic</th><th>Meaning</th></tr>
+                <tr>
+                    <th>Heuristic</th>
+                    <th>Intuition</th>
+                    <th>Scale</th>
+                    <th>Interpretation</th>
+                </tr>
             </thead>
             <tbody>
-                <tr><td>Task: Common Defects</td><td>Frequent errors on this task</td></tr>
-                <tr><td>Task: Characteristic Defects</td><td>Unique mistakes tied to this task</td></tr>
-                <tr><td>Student: Frequency</td><td>Persistent individual mistakes</td></tr>
-                <tr><td>Student: Characteristic Defect</td><td>Personal learning gaps</td></tr>
-                <tr><td>Student: Encountered Before</td><td>Previously seen mistakes</td></tr>
-                <tr><td>Defect Multiplicity</td><td>Indicates fundamental misunderstandings</td></tr>
-                <tr><td>Baseline: Severity</td><td>Overall seriousness of the defect</td></tr>
+                <tr>
+                    <td>Task: Common Defects</td>
+                    <td>Frequent errors made by students on this task</td>
+                    <td>Absolute</td>
+                    <td>Higher = more students make this mistake</td>
+                </tr>
+                <tr>
+                    <td>Task: Characteristic Defects</td>
+                    <td>Unique mistakes tied to this task</td>
+                    <td>Relative</td>
+                    <td>Higher = more distinctive to this assignment</td>
+                </tr>
+                <tr>
+                    <td>Student: Frequency</td>
+                    <td>Persistent individual mistakes</td>
+                    <td>Absolute</td>
+                    <td>Higher = student repeats this defect often</td>
+                </tr>
+                <tr>
+                    <td>Student: Characteristic Defect</td>
+                    <td>Defects indicating personal learning gaps</td>
+                    <td>Relative</td>
+                    <td>Higher = especially indicative of this student's pattern</td>
+                </tr>
+                <tr>
+                    <td>Student: Encountered Before</td>
+                    <td>Previously seen mistakes by this student</td>
+                    <td>Absolute</td>
+                    <td>Higher = student has made this error more recently</td>
+                </tr>
+                <tr>
+                    <td>Defect Multiplicity</td>
+                    <td>Extra instances of this defect in the submission</td>
+                    <td>Relative</td>
+                    <td>Higher = submission is particularly affected</td>
+                </tr>
+                <tr>
+                    <td>Baseline: Severity</td>
+                    <td>Overall seriousness of the defect</td>
+                    <td>Absolute</td>
+                    <td>Higher = more severe / critical to fix</td>
+                </tr>
             </tbody>
         </table>
     </section>
+
     """
 
 
