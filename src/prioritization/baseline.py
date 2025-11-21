@@ -31,22 +31,27 @@ class SeverityModel(PrioritizationModel):
         """Return the type of context the model uses."""
         return "stateless"
 
-    def get_model_description(self) -> str:
-        """Return a human-readable description of the model's logic."""
-        return "Prioritizes defects based on their inherent severity (a fixed, global value)."
-
-    def get_measure_name(self) -> str:
-        """Return a precise description of the model's output."""
-        return "Severity (1 = Least Severe, 5 = Most Severe)"
-
-    def get_measure_description(self) -> str:
-        """Return a human readable description of the model output."""
-        return "Fixed Severity"
-
     def get_model_weights(self) -> pd.DataFrame:
         """Return a single-row matrix for consistency in analysis."""
         return self.severity_map.to_frame().T
 
-    def get_discretization_scale(self):
+    @classmethod
+    def get_discretization_scale(cls):
         """Return the name of the model's discretization scale (e.g., '1-5')."""
         return "1-5"
+
+    @classmethod
+    def get_model_name(cls) -> str:  # noqa: D102
+        return "Naive Severity"
+
+    @classmethod
+    def get_measure_name(cls) -> str:  # noqa: D102
+        return "Severity from a Survey"
+
+    @classmethod
+    def get_model_description(cls) -> str:  # noqa: D102
+        return "Context-free defect severity from a previous survey."
+
+    @classmethod
+    def get_model_interpretation(cls) -> str:  # noqa: D102
+        return "Higher = more severe / critical to fix."

@@ -40,21 +40,25 @@ class TaskCommonModel(TaskPrioritizationModel, FrequencyBasedModel):
 
         return self
 
-    def get_measure_name(self) -> str:
-        """Return a precise, short description of the model's output."""
-        return "Relative Frequency"
-
-    def get_measure_description(self) -> str:
-        """Return a human readable description of the model output."""
-        return "Task-Defect Commonality"
-
-    def get_model_description(self) -> str:
-        """Return a human-readable description of the model's logic."""
-        return "Prioritizes defects based on their average frequency in the task."
-
     def get_model_weights(self) -> pd.DataFrame:
         """Return the pre-computed task-defect frequency matrix."""
         return self.task_defect_freqs
+
+    @classmethod
+    def get_model_name(cls) -> str:  # noqa: D102
+        return "Task Common"
+
+    @classmethod
+    def get_measure_name(cls) -> str:  # noqa: D102
+        return "Task-Specific Frequency"
+
+    @classmethod
+    def get_model_description(cls) -> str:  # noqa: D102
+        return "Frequent errors made by students on this task."
+
+    @classmethod
+    def get_model_interpretation(cls) -> str:  # noqa: D102
+        return "Higher = more students make this mistake."
 
 
 class TaskCharacteristicModel(ZScoreBasedModel, TaskCommonModel):
@@ -99,18 +103,22 @@ class TaskCharacteristicModel(ZScoreBasedModel, TaskCommonModel):
 
         return self
 
-    def get_measure_name(self) -> str:
-        """Return a precise, short description of the model's output."""
-        return "Relative Frequency Z-Score"
-
-    def get_measure_description(self) -> str:
-        """Return a human readable description of the model output."""
-        return "Characteristic Task-Defect Scores"
-
-    def get_model_description(self) -> str:
-        """Return a human-readable description of the model's logic."""
-        return "Prioritizes defects by their z-score (unusualness) within a task."
-
     def get_model_weights(self) -> pd.DataFrame:
         """Return the pre-computed task-defect z-score matrix."""
         return self.task_z_scores
+
+    @classmethod
+    def get_model_name(cls) -> str:  # noqa: D102
+        return "Task Characteristic"
+
+    @classmethod
+    def get_measure_name(cls) -> str:  # noqa: D102
+        return "Task-Specific Z-Score"
+
+    @classmethod
+    def get_model_description(cls) -> str:  # noqa: D102
+        return "Unique mistakes tied to this task."
+
+    @classmethod
+    def get_model_interpretation(cls) -> str:  # noqa: D102
+        return "Higher = more distinctive to this assignment."

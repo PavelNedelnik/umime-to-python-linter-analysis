@@ -57,7 +57,7 @@ def render_heuristics_section(defects: list, heuristics: list) -> str:
     html = ['<section class="heuristics-section">']
     html.append("<h3>Context Table</h3>")
     html.append(render_heuristics_table(defects, heuristics))
-    html.append(render_heuristic_explanation())
+    html.append(render_heuristic_explanation(heuristics))
     html.append("</section>")
     return "".join(html)
 
@@ -88,9 +88,10 @@ def render_heuristics_table(defects: list, heuristics: list) -> str:
     return "".join(html)
 
 
-def render_heuristic_explanation() -> str:
+def render_heuristic_explanation(heuristics: list) -> str:
     """Educator-friendly explanation of heuristic models."""
-    return """
+    html = [
+        """
     <section class="heuristics-explanation">
         <h3>What the Contextual Heuristics Represent</h3>
         <p>
@@ -107,53 +108,20 @@ def render_heuristic_explanation() -> str:
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>Task: Common Defects</td>
-                    <td>Frequent errors made by students on this task</td>
-                    <td>Absolute</td>
-                    <td>Higher = more students make this mistake</td>
-                </tr>
-                <tr>
-                    <td>Task: Characteristic Defects</td>
-                    <td>Unique mistakes tied to this task</td>
-                    <td>Relative</td>
-                    <td>Higher = more distinctive to this assignment</td>
-                </tr>
-                <tr>
-                    <td>Student: Frequency</td>
-                    <td>Persistent individual mistakes</td>
-                    <td>Absolute</td>
-                    <td>Higher = student repeats this defect often</td>
-                </tr>
-                <tr>
-                    <td>Student: Characteristic Defect</td>
-                    <td>Defects indicating personal learning gaps</td>
-                    <td>Relative</td>
-                    <td>Higher = especially indicative of this student's pattern</td>
-                </tr>
-                <tr>
-                    <td>Student: Encountered Before</td>
-                    <td>Previously seen mistakes by this student</td>
-                    <td>Absolute</td>
-                    <td>Higher = student has made this error more recently</td>
-                </tr>
-                <tr>
-                    <td>Defect Multiplicity</td>
-                    <td>Extra instances of this defect in the submission</td>
-                    <td>Relative</td>
-                    <td>Higher = submission is particularly affected</td>
-                </tr>
-                <tr>
-                    <td>Baseline: Severity</td>
-                    <td>Overall seriousness of the defect</td>
-                    <td>Absolute</td>
-                    <td>Higher = more severe / critical to fix</td>
-                </tr>
-            </tbody>
-        </table>
-    </section>
-
     """
+    ]
+    for h in heuristics:
+        html.append(f"""
+            <tr>
+                <td>{h["name"]}</td>
+                <td>{h.get("description", "")}</td>
+                <td>{"Relative" if h.get("scale", "1-5") == "-2-2" else "Absolute"}</td>
+                <td>{h.get("interpretation", "")}</td>
+            </tr>
+        """)
+    html.append("</tbody></table></section>")
+
+    return "".join(html)
 
 
 # ============================================================

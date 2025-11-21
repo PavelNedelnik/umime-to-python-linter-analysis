@@ -60,17 +60,21 @@ class StudentFrequencyModel(StudentPrioritizationModel, FrequencyBasedModel):
         """Return the pre-computed student-defect frequency matrix."""
         return self.user_defect_freqs
 
-    def get_measure_name(self) -> str:
-        """Return a short, descriptive name of the model's measure (e.g., 'Frequency')."""
-        return "Relative Frequency"
+    @classmethod
+    def get_model_name(cls) -> str:  # noqa: D102
+        return "Student Common"
 
-    def get_measure_description(self) -> str:
-        """Return a human readable description of the model output (e.g. 'Commonality')."""
-        return "Student-Specific Frequencies"
+    @classmethod
+    def get_measure_name(cls) -> str:  # noqa: D102
+        return "Student-Specific Frequency"
 
-    def get_model_description(self) -> str:
-        """Return a human-readable description of the model's logic."""
-        return "Prioritizes defects based on a student's past frequency of making them."
+    @classmethod
+    def get_model_description(cls) -> str:  # noqa: D102
+        return "Persistent individual mistakes."
+
+    @classmethod
+    def get_model_interpretation(cls) -> str:  # noqa: D102
+        return "Higher = student repeats this defect often."
 
 
 class StudentCharacteristicModel(ZScoreBasedModel, StudentFrequencyModel):
@@ -118,21 +122,25 @@ class StudentCharacteristicModel(ZScoreBasedModel, StudentFrequencyModel):
 
         return self
 
-    def get_model_description(self) -> str:
-        """Return a human-readable description of the model's logic."""
-        return "Prioritizes defects a student makes with a statistically significant frequency (z-score)."
-
-    def get_measure_name(self) -> str:
-        """Return a short, descriptive name of the model's measure (e.g., 'Frequency')."""
-        return "Z-Score"
-
-    def get_measure_description(self) -> str:
-        """Return a human readable description of the model output (e.g. 'Commonality')."""
-        return "Student-Defect Characteristic Scores"
-
     def get_model_weights(self) -> pd.DataFrame:
         """Return the pre-computed student-defect z-score matrix."""
         return self.user_z_scores
+
+    @classmethod
+    def get_model_name(cls) -> str:  # noqa: D102
+        return "Student Characteristic"
+
+    @classmethod
+    def get_measure_name(cls) -> str:  # noqa: D102
+        return "Student-Specific Z-Score"
+
+    @classmethod
+    def get_model_description(cls) -> str:  # noqa: D102
+        return "Defects indicating personal learning gaps."
+
+    @classmethod
+    def get_model_interpretation(cls) -> str:  # noqa: D102
+        return "Higher = especially indicative of this student's pattern."
 
 
 class StudentEncounteredBeforeModel(StudentPrioritizationModel, FrequencyBasedModel):
@@ -178,17 +186,21 @@ class StudentEncounteredBeforeModel(StudentPrioritizationModel, FrequencyBasedMo
         """Return the inverted user counters as a DataFrame."""
         return self.user_weights
 
-    def get_measure_name(self) -> str:
-        """Return a precise, short description of the model's output."""
-        return "Submissions since last encounter (inverted)"
+    @classmethod
+    def get_model_name(cls) -> str:  # noqa: D102
+        return "Student Encountered"
 
-    def get_measure_description(self) -> str:
-        """Return a human-readable description of the model's output."""
+    @classmethod
+    def get_measure_name(cls) -> str:  # noqa: D102
         return "Student-Defect Recency"
 
-    def get_model_description(self) -> str:
-        """Return a human-readable description of the model's logic."""
-        return "Prioritizes defects that a student has encountered recently."
+    @classmethod
+    def get_model_description(cls) -> str:  # noqa: D102
+        return "Previously seen mistakes by this student."
+
+    @classmethod
+    def get_model_interpretation(cls) -> str:  # noqa: D102
+        return "Higher = student has made this error more recently."
 
 
 class DefectMultiplicityModel(ZScoreBasedModel, StudentPrioritizationModel):
@@ -228,22 +240,22 @@ class DefectMultiplicityModel(ZScoreBasedModel, StudentPrioritizationModel):
 
         return self
 
-    def get_context_type(self) -> str:
-        """Return the type of context the model uses."""
-        return "student"
-
-    def get_measure_name(self) -> str:
-        """Return a precise, short description of the model's output."""
-        return "Normalized Defect Counts"
-
-    def get_measure_description(self) -> str:
-        """Return a human-readable description of the model's output."""
-        return "Defect Muliplicity"
-
-    def get_model_description(self) -> str:
-        """Return a human-readable description of the model's logic."""
-        return "Prioritizes defects by how unusually common they are in a submission, with adaptive global statistics."
-
     def get_model_weights(self) -> pd.DataFrame:
         """Return the pre-computed weight matrix for analysis."""
         return pd.concat([self.mean, self.var**0.5], axis=1)
+
+    @classmethod
+    def get_model_name(cls) -> str:  # noqa: D102
+        return "Defect Multiplicity"
+
+    @classmethod
+    def get_measure_name(cls) -> str:  # noqa: D102
+        return "Normalized Defect Counts"
+
+    @classmethod
+    def get_model_description(cls) -> str:  # noqa: D102
+        return "Extra instances of this defect in the submission."
+
+    @classmethod
+    def get_model_interpretation(cls) -> str:  # noqa: D102
+        return "Higher = submission is particularly affected."

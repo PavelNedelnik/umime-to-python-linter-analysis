@@ -113,31 +113,60 @@ class PrioritizationModel(ABC):
         self.thresholds = np.array([])
         return self
 
-    # --- Introspection Methods ---
-    def get_context_type(self) -> str:
+    # --- Model Metadata ---
+    @classmethod
+    @abstractmethod
+    def get_context_type(cls) -> str:
         """Return the type of context the model uses: 'stateless', 'task', or 'student'."""
-        return "stateless"
-
-    @abstractmethod
-    def get_model_description(self) -> str:
-        """Return a human-readable description of the model's logic."""
         pass
 
+    @classmethod
     @abstractmethod
-    def get_measure_name(self) -> str:
-        """Return a short, descriptive name of the model's measure (e.g., 'Frequency')."""
-        pass
-
-    @abstractmethod
-    def get_measure_description(self) -> str:
-        """Return a human readable description of the model output (e.g. 'Commonality')."""
-        pass
-
-    @abstractmethod
-    def get_discretization_scale(self) -> str:
+    def get_discretization_scale(cls) -> str:
         """Return the name of the model's discretization scale (e.g., '1-5')."""
         pass
 
+    @classmethod
+    @abstractmethod
+    def get_model_name(cls) -> str:
+        """
+        Return a user-friendly name for the model (e.g., 'Student Commonality').
+
+        Should correspond to how the model is named in the accompanying thesis.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def get_measure_name(cls) -> str:
+        """
+        Return a short, descriptive name of what the model measures (e.g., 'Student-Specific Frequency').
+
+        Might be used for example to label a histogram of model scores.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def get_model_description(cls) -> str:
+        """
+        Return a user-friendly intuitive justification for the model.
+
+        Will be used to present the model to educators as part of the teacher survey.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def get_model_interpretation(cls) -> str:
+        """
+        Return a user-friendly explanation of how the priorities should be interpreted.
+
+        Will be used to present the model to educators as part of the teacher survey.
+        """
+        pass
+
+    # --- Introspection Methods ---
     def get_model_weights(self) -> pd.DataFrame:
         """Return the model's pre-computed weight matrix for analysis."""
         return None
@@ -202,7 +231,8 @@ class FrequencyBasedModel(PrioritizationModel, ABC):
         """Discretize scores into levels 1-5 using the fixed thresholds."""
         return super().discretize(submission, defect_counts) + 1
 
-    def get_discretization_scale(self) -> str:
+    @classmethod
+    def get_discretization_scale(cls) -> str:
         """Return the name of the model's discretization scale (e.g., '1-5')."""
         return "1-5"
 
@@ -218,6 +248,7 @@ class ZScoreBasedModel(PrioritizationModel, ABC):
         """Discretize scores into levels -2-2 using the fixed thresholds."""
         return super().discretize(submission, defect_counts) - 2
 
-    def get_discretization_scale(self) -> str:
+    @classmethod
+    def get_discretization_scale(cls) -> str:
         """Return the name of the model's discretization scale (e.g., '-2-2')."""
         return "-2-2"
