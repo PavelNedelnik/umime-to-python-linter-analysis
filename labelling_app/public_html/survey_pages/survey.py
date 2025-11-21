@@ -3,7 +3,7 @@
 from pathlib import Path
 from urllib.parse import urlencode
 
-from .utils import data_access, shared_components, survey_logic
+from utils import data_access, shared_components, survey_logic
 
 # ============================================================
 # =========================  ROUTE  ==========================

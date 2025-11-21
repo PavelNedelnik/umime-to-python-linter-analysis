@@ -12,6 +12,10 @@ import sys
 import uuid
 from pathlib import Path
 
+BASE = os.path.dirname(__file__)
+sys.path.insert(0, os.path.join(BASE, "survey_pages"))
+sys.path.insert(0, os.path.join(BASE, "survey_pages", "utils"))
+
 from survey_pages import demo, landing, results, survey
 from survey_pages.utils.shared_components import render_html_page
 
@@ -93,6 +97,3 @@ elif page == "demo":
 
 # Wrap content in a full HTML page with head and CSS
 print(render_html_page(page_title, content))
-
-# end of file
-print("</body></html>")
