@@ -1,5 +1,7 @@
 """Shared rendering components for survey pages."""
 
+from typing import List, Optional
+
 from .survey_logic import map_score
 
 CSS_RELATIVE_PATH = "../css/defects.css"  # relative to /public_html
@@ -10,7 +12,7 @@ CSS_RELATIVE_PATH = "../css/defects.css"  # relative to /public_html
 # ============================================================
 
 
-def two_column_layout(left: list[str], right: list[str]) -> str:
+def two_column_layout(left: List[str], right: List[str]) -> str:
     """Render a responsive two-column layout for survey pages.
 
     Left column typically contains task + heuristics.
@@ -134,7 +136,7 @@ def render_defects_section(
     question_index: str,
     is_clickable: bool = True,
     show_comment_box: bool = False,
-    defect_vote_counts: dict | None = None,
+    defect_vote_counts: Optional[None] = None,
 ) -> str:
     """Render all defects as cards with options for clickable, votes display, highlighting, and the comment box."""
     if not defects:
@@ -188,7 +190,7 @@ def render_defect_fix_block(defect: dict) -> str:
     return "".join(html)
 
 
-def render_defect_content(defect: dict, votes: int | None = None) -> str:
+def render_defect_content(defect: dict, votes: Optional[int] = None) -> str:
     """Render name, description, examples, and optional vote counts."""
     html = [
         "<div class='defect-content-wrapper'>",
@@ -203,7 +205,7 @@ def render_defect_content(defect: dict, votes: int | None = None) -> str:
 
 
 def render_defect_button(
-    defect: dict, is_clickable: bool = True, highlight: bool = False, votes: int | None = None
+    defect: dict, is_clickable: bool = True, highlight: bool = False, votes: Optional[int] = None
 ) -> str:
     """Render a single defect card as a button."""
     classes = ["defect-button"]
@@ -241,4 +243,8 @@ def render_html_page(title: str, body_content: str) -> str:
 {body_content}
 </body>
 </html>
+"""
+
+
+"""
 """

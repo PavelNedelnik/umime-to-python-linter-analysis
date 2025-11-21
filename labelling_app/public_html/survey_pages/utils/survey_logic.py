@@ -12,7 +12,7 @@ import uuid
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import DefaultDict, Dict, List, Optional
 
 from .data_access import load_csv, save_csv_row
 
@@ -129,7 +129,7 @@ def save_feedback(data_path: Path, user_id: str, feedback_text: str):
 # ============================================================
 
 
-def get_next_question(data_path: Path, user_id: str) -> dict | None:
+def get_next_question(data_path: Path, user_id: str) -> Optional[Dict]:
     """
     Return the next question for the user.
 
@@ -182,7 +182,7 @@ def get_defects_for_submission(data_path: Path, submission_id: str) -> List[Dict
     return [d for d in defects if d.get("submission id") == submission_id]
 
 
-def get_defect_counts(data_path: Path, submission_id: str) -> defaultdict:
+def get_defect_counts(data_path: Path, submission_id: str) -> DefaultDict[str, int]:
     """Return defect vote counts for a given submission."""
     responses = load_csv(data_path / "responses.csv")
     defect_counts = defaultdict(lambda: 0)
