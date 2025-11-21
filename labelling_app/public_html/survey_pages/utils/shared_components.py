@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 
-from survey_logic import map_score
+from .survey_logic import map_score
 
 CSS_RELATIVE_PATH = "../css/defects.css"  # relative to /public_html
 

@@ -1,6 +1,6 @@
 """Demo / Instructions page for the survey."""
 
-from utils import data_access, shared_components, survey_logic
+from .utils import data_access, shared_components, survey_logic
 
 # ============================================================
 # =========================  ROUTE  ==========================

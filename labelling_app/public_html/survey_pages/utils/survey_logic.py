@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import DefaultDict, Dict, List, Optional
 
-from data_access import load_csv, save_csv_row
+from .data_access import load_csv, save_csv_row
 
 # ============================================================
 # ===================  GLOBAL CONSTANTS  =====================
@@ -164,7 +164,7 @@ def get_next_question(data_path: Path, user_id: str) -> Optional[Dict]:
     # Compute uncertainty for each question
     uncertainty_scores = []
     for question in user_unanswered_questions:
-        votes = total_responses[row["submission id"]]
+        votes = total_responses.get(question["index"], [])
         total_votes = len(votes)
         most_common_answer_count = Counter(votes).most_common(1)[0][1]
         consensus = most_common_answer_count / total_votes
