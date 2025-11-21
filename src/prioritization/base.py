@@ -13,6 +13,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.special import softmax
+from scipy.stats import norm
+
+SIGMA_CUTOFFS = np.array([-1.5, -0.5, 0.5, 1.5])
+TARGET_PERCENTILES = norm.cdf(SIGMA_CUTOFFS)
+MIN_HURDLE = 1e-8
 
 
 class PrioritizationModel(ABC):
@@ -167,7 +172,7 @@ class PrioritizationModel(ABC):
         pass
 
     # --- Introspection Methods ---
-    def get_model_weights(self) -> pd.DataFrame:
+    def get_model_weights(self) -> pd.DataFrame | None:
         """Return the model's pre-computed weight matrix for analysis."""
         return None
 
@@ -225,7 +230,14 @@ class FrequencyBasedModel(PrioritizationModel, ABC):
 
     def _calculate_thresholds(self):
         """Set fixed threshold boundaries for the 1 to 5 scale."""
-        self.thresholds = np.array([0.05, 0.1, 0.25, 0.5])
+        # Only consider weights passing the minimum hurdle
+        vals = self.get_model_weights().values.flatten()
+        non_zeros = vals[vals > MIN_HURDLE]
+
+        if len(non_zeros) > 0:
+            self.thresholds = np.quantile(non_zeros, TARGET_PERCENTILES)
+        else:
+            self.thresholds = np.zeros(4)
 
     def discretize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Discretize scores into levels 1-5 using the fixed thresholds."""
@@ -242,7 +254,7 @@ class ZScoreBasedModel(PrioritizationModel, ABC):
 
     def _calculate_thresholds(self):
         """Set fixed threshold boundaries for the -2 to +2 scale."""
-        self.thresholds = np.array([-1.5, -0.5, 0.5, 1.5])
+        self.thresholds = SIGMA_CUTOFFS
 
     def discretize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Discretize scores into levels -2-2 using the fixed thresholds."""
