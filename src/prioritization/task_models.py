@@ -54,11 +54,11 @@ class TaskCommonModel(TaskPrioritizationModel, FrequencyBasedModel):
 
     @classmethod
     def get_model_description(cls) -> str:  # noqa: D102
-        return "Frequent errors made by students on this task."
+        return "Defects commonly seen on this task."
 
     @classmethod
     def get_model_interpretation(cls) -> str:  # noqa: D102
-        return "Higher = more students make this mistake."
+        return "Higher = more students introduce this defect."
 
 
 class TaskCharacteristicModel(ZScoreBasedModel, TaskCommonModel):
@@ -117,8 +117,8 @@ class TaskCharacteristicModel(ZScoreBasedModel, TaskCommonModel):
 
     @classmethod
     def get_model_description(cls) -> str:  # noqa: D102
-        return "Unique mistakes tied to this task."
+        return "Defects uniquely common on this task."
 
     @classmethod
     def get_model_interpretation(cls) -> str:  # noqa: D102
-        return "Higher = more distinctive to this assignment."
+        return "Higher = more distinctive to this task."

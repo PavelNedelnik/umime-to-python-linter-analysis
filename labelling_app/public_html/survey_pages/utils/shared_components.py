@@ -54,12 +54,12 @@ def render_task_section(question: dict, defects: list, heuristics: list) -> str:
 # ============================================================
 
 
-def render_heuristics_section(defects: list, heuristics: list) -> str:
+def render_heuristics_section(defects: list, heuristics: list, collapse_explanation: bool = True) -> str:
     """Render heuristics table + explanation as a separate section."""
     html = ['<section class="heuristics-section">']
     html.append("<h3>Context Table</h3>")
     html.append(render_heuristics_table(defects, heuristics))
-    html.append(render_heuristic_explanation(heuristics))
+    html.append(render_heuristic_explanation(heuristics, collapse=collapse_explanation))
     html.append("</section>")
     return "".join(html)
 
@@ -90,26 +90,37 @@ def render_heuristics_table(defects: list, heuristics: list) -> str:
     return "".join(html)
 
 
-def render_heuristic_explanation(heuristics: list) -> str:
+def render_heuristic_explanation(heuristics: list, collapse: bool = True) -> str:
     """Educator-friendly explanation of heuristic models."""
     html = [
-        """
-    <section class="heuristics-explanation">
-        <h3>What the Contextual Heuristics Represent</h3>
-        <p>
-            Below is a summary of the heuristics used to contextually frame defects.
-        </p>
+        f"""
+        <section class="heuristics-explanation">
+            <details class="heuristics-collapse" {"" if collapse else "open"}>
+            <summary>How to Interpret the Context Table</summary>
+            <p>
+                Below is a summary of the heuristics. A higher score means addressing the defect is more urgent.
+            </p>
+            
+            <p>
+                Each reflects broader context of the submission - <strong>Student</strong> heuristics
+                look at the student's history, while <strong>Task</strong> heuristics look at
+                submissions made by other students on the same task.
+            </p>
 
-        <table class="heuristics-table">
-            <thead>
-                <tr>
-                    <th>Heuristic</th>
-                    <th>Intuition</th>
-                    <th>Scale</th>
-                    <th>Interpretation</th>
-                </tr>
-            </thead>
-            <tbody>
+            <p>
+                <strong>Relative</strong> heuristics compare along the axis (to other tasks or students), while <strong>Absolute</strong> heuristics present the information as is.
+            </p>
+
+            <table class="heuristics-table">
+                <thead>
+                    <tr>
+                        <th>Heuristic</th>
+                        <th>Helps identify</th>
+                        <th>Scale</th>
+                        <th>Interpretation</th>
+                    </tr>
+                </thead>
+                <tbody>
     """
     ]
     for h in heuristics:
@@ -121,7 +132,7 @@ def render_heuristic_explanation(heuristics: list) -> str:
                 <td>{h.get("interpretation", "")}</td>
             </tr>
         """)
-    html.append("</tbody></table></section>")
+    html.append("</tbody></table></details></section>")
 
     return "".join(html)
 
@@ -165,16 +176,13 @@ def render_defects_section(
 
 def render_comment_box(disabled: bool = False) -> str:
     """Render a comment box for survey submissions."""
-    attribute = ""
-    instructions = "Will be submitted with the response"
-    if disabled:
-        attribute = "disabled"
-        instructions = "Disabled for the demo"
-
+    attribute = "disabled" if disabled else ""
+    hint = "Disabled for the demo" if disabled else "Your comment here..."
+    """Render a comment box for survey submissions."""
     return f"""
     <div class="comment-section">
-        <h3>Optional Comment: ({instructions})</h3>
-        <textarea name="comment" id="comment" class="comment-box" rows="4" {attribute}></textarea>
+        <h3>Optional Comment: (Click on a defect to submit)</h3>
+        <textarea name="comment" id="comment" class="comment-box" rows="4" {attribute} placeholder="{hint}"></textarea>
     </div>
     """
 

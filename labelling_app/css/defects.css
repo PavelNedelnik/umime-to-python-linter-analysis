@@ -260,6 +260,16 @@ a {
 .level-higher { background-color: #ffe082; }
 .level-much-higher { background-color: #ffca28; }
 
+.heuristics-collapse summary {
+    cursor: pointer;
+    font-size: 1.1em;
+    margin-bottom: 10px;
+}
+
+.heuristics-collapse[open] summary {
+    margin-bottom: 15px;
+}
+
 /* ===================== Comments ===================== */
 .comment-section {
     margin-top: 25px;

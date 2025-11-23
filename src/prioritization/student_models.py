@@ -70,11 +70,11 @@ class StudentFrequencyModel(StudentPrioritizationModel, FrequencyBasedModel):
 
     @classmethod
     def get_model_description(cls) -> str:  # noqa: D102
-        return "Persistent individual mistakes."
+        return "Persistent defects by this student."
 
     @classmethod
     def get_model_interpretation(cls) -> str:  # noqa: D102
-        return "Higher = student repeats this defect often."
+        return "Higher = student introduces this defect more often."
 
 
 class StudentCharacteristicModel(ZScoreBasedModel, StudentFrequencyModel):
@@ -140,7 +140,7 @@ class StudentCharacteristicModel(ZScoreBasedModel, StudentFrequencyModel):
 
     @classmethod
     def get_model_interpretation(cls) -> str:  # noqa: D102
-        return "Higher = especially indicative of this student's pattern."
+        return "Higher = student introduces this defect more often compared to their peers."
 
 
 class StudentEncounteredBeforeModel(StudentPrioritizationModel, FrequencyBasedModel):
@@ -196,11 +196,11 @@ class StudentEncounteredBeforeModel(StudentPrioritizationModel, FrequencyBasedMo
 
     @classmethod
     def get_model_description(cls) -> str:  # noqa: D102
-        return "Previously seen mistakes by this student."
+        return "Defects student has reintroduced and might be struggling to understand."
 
     @classmethod
     def get_model_interpretation(cls) -> str:  # noqa: D102
-        return "Higher = student has made this error more recently."
+        return "Higher = student has introduced this defect more recently."
 
 
 class DefectMultiplicityModel(ZScoreBasedModel, StudentPrioritizationModel):
@@ -254,7 +254,7 @@ class DefectMultiplicityModel(ZScoreBasedModel, StudentPrioritizationModel):
 
     @classmethod
     def get_model_description(cls) -> str:  # noqa: D102
-        return "Extra instances of this defect in the submission."
+        return "Defects that appear multiple times in a single submission."
 
     @classmethod
     def get_model_interpretation(cls) -> str:  # noqa: D102

@@ -19,7 +19,7 @@ def demo(data_path) -> str:
 
     left_column = [
         shared_components.render_task_section(question, defects, heuristics),
-        shared_components.render_heuristics_section(defects, heuristics),
+        shared_components.render_heuristics_section(defects, heuristics, collapse_explanation=False),
     ]
 
     right_column = [
@@ -72,8 +72,7 @@ def render_demo_instructions() -> str:
         <ol class="demo-list">
             <li><strong>The submission:</strong> See the student's original code exactly as submitted.</li>
             <li><strong>Defects:</strong> Browse the potential code quality issues flagged in the submission.</li>
-            <li><strong>Contextual considerations:</strong> Check how each defect is framed based on teaching priorities and student learning context.</li>
-            <li><strong>Context table:</strong> Compare defects side by side for this submission to see which ones might deserve more attention.</li>
+            <li><strong>Context table:</strong> A heart of the survey. It gives you a quick way to compare defects using several contextual heuristics—factors that teachers typically consider when deciding what feedback to give first. You'll find a more detailed explanation below the table.</li>
             <li><strong>(Note on submitting):</strong> In the real survey, clicking a defect registers your choice—but here, selections are disabled so you can explore freely.</li>
         </ol>
     
