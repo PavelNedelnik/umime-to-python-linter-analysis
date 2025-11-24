@@ -22,8 +22,6 @@ def split_users(
     Returns:
         A tuple of pd.Series masking train, val, and test data.
     """
-    if not math.isclose(train_pct + val_pct + test_pct, 1.0):
-        raise ValueError("train_pct + val_pct + test_pct must be 1")
     all_users = np.sort(log["user"].unique())
     rng = np.random.default_rng(seed)
     all_users = rng.permutation(all_users)
@@ -36,7 +34,9 @@ def split_users(
     val_users = all_users[train_pivot:val_pivot]
     val_mask = log["user"].isin(val_users).copy()
 
-    test_mask = ~(train_mask | val_mask)
+    test_pivot = int(len(all_users) * (train_pct + val_pct + test_pct))
+    test_users = all_users[val_pivot:test_pivot]
+    test_mask = log["user"].isin(test_users).copy()
 
     return train_mask, val_mask, test_mask
 
