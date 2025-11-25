@@ -1,0 +1,21 @@
+# base.yaml
+debug: false
+note: "Short note explaining the configuration"
+unique_code: "base"
+
+paths:
+  storage_root: "data/datasets/"
+  images_root: "images/"
+  raw_submission_log: "data/ipython_raw/"
+  raw_defect_table: "data/defects.csv"
+  raw_survey_responses: "data/survey_responses/"
+  survey_data: "labelling_app/survey_data/"
+
+
+defaults:
+  resolution: 300
+  random_seed: 42
+
+loading_flags:
+  only_correct: true
+  only_final: true

@@ -1,0 +1,7 @@
+# config/debug.yaml
+debug: true
+unique_code: "debug"
+note: "Tiny dataset for testing"
+
+paths:
+  raw_survey_responses: "data/debug_survey_responses/"
