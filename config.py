@@ -10,11 +10,11 @@ CONFIG_ENV = os.getenv("CONFIG_ENV", "debug")  # "debug", "production", ...
 
 def deep_update(base, overrides):
     """Update config with overrides."""
-    for k, v in overrides.items():
-        if isinstance(v, dict) and isinstance(base.get(k), dict):
-            deep_update(base[k], v)
+    for key, value in overrides.items():
+        if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+            deep_update(base[key], value)
         else:
-            base[k] = v
+            base[key] = value
     return base
 
 
