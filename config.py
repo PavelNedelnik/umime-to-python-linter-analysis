@@ -8,6 +8,16 @@ import yaml
 CONFIG_ENV = os.getenv("CONFIG_ENV", "debug")  # "debug", "production", ...
 
 
+def deep_update(base, overrides):
+    """Update config with overrides."""
+    for k, v in overrides.items():
+        if isinstance(v, dict) and isinstance(base.get(k), dict):
+            deep_update(base[k], v)
+        else:
+            base[k] = v
+    return base
+
+
 def load_config():
     """Load configuration from YAML files."""
     # Load base config
@@ -17,9 +27,8 @@ def load_config():
     # Load environment-specific overrides
     env_path = f"config/{CONFIG_ENV}.yaml"
     if Path(env_path).exists():
-        with open(env_path) as f:
-            env_cfg = yaml.safe_load(f)
-        cfg.update(env_cfg)
+        env_cfg = yaml.safe_load(open(env_path))
+        deep_update(cfg, env_cfg)
 
     # ---- Dynamic logic ----
     debug = cfg["debug"]
