@@ -5,8 +5,6 @@ from pathlib import Path
 
 import yaml
 
-CONFIG_ENV = os.getenv("CONFIG_ENV", "debug")  # "debug", "production", ...
-
 
 def deep_update(base, overrides):
     """Update config with overrides."""
@@ -20,6 +18,8 @@ def deep_update(base, overrides):
 
 def load_config():
     """Load configuration from YAML files."""
+    CONFIG_ENV = os.getenv("CONFIG_ENV", "debug")
+
     # Load base config
     with open("config/base.yaml") as f:
         cfg = yaml.safe_load(f)
