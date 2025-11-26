@@ -26,19 +26,3 @@ def combine_stats(
     ) / combined_samples
 
     return combined_samples, combined_mean, combined_var
-
-
-class DefaultDictFactory:
-    """
-    A callable factory for use with <collections.defaultdict> that consistently returns a given default value.
-
-    Might be used over <lamda> for compatibility with <pickle>.
-    """
-
-    def __init__(self, default_value):
-        """Initialize the factory."""
-        self.default_value = default_value
-
-    def __call__(self):
-        """Return the default value."""
-        return deepcopy(self.default_value)

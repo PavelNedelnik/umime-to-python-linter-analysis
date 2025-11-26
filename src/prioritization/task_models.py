@@ -90,7 +90,7 @@ class TaskCharacteristicModel(ZScoreBasedModel, TaskCommonModel):
             presence.shape[0], new_mean, new_var, self.global_samples, self.global_mean, self.global_var
         )
 
-        self.task_z_scores = self.task_defect_freqs - self.global_mean / self.global_var.pow(0.5).replace(0, 1)
+        self.task_z_scores = (self.task_defect_freqs - self.global_mean) / self.global_var.pow(0.5).replace(0, 1)
 
     def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""

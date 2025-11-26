@@ -4,8 +4,6 @@ This module contains prioritization models that focus on student-specific contex
 These models calculate a weight matrix where rows are students and columns are defects.
 """
 
-from collections import defaultdict
-
 import numpy as np
 import pandas as pd
 
@@ -15,7 +13,7 @@ from src.prioritization.base import (
     StudentPrioritizationModel,
     ZScoreBasedModel,
 )
-from src.prioritization.utils import DefaultDictFactory, combine_stats
+from src.prioritization.utils import combine_stats
 
 # Theoretical standard deviation cutoffs for the DefectMultiplicityModel
 SIGMA_CUTOFFS = np.array([-1.5, -0.5, 0.5, 1.5])
@@ -27,8 +25,8 @@ class StudentFrequencyModel(StudentPrioritizationModel, FrequencyBasedModel):
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
         """Initialize the model."""
         super().__init__(items, defects, *args, **kwargs)
-        self.user_submissions = defaultdict(DefaultDictFactory(0))
-        self.user_defect_counts = defaultdict(DefaultDictFactory(pd.Series(0, index=self.defects.index, dtype=int)))
+        self.user_submissions = {}
+        self.user_defect_counts = {}
         self.user_defect_freqs = pd.DataFrame(columns=self.defects.index, dtype=float)
 
     def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
@@ -44,6 +42,9 @@ class StudentFrequencyModel(StudentPrioritizationModel, FrequencyBasedModel):
         user_histories = defect_presence.groupby(submissions["user"])
 
         for user_id, user_history in user_histories:
+            if user_id not in self.user_submissions:
+                self.user_submissions[user_id] = 0
+                self.user_defect_counts[user_id] = pd.Series(0, index=self.defects.index, dtype=int)
             self.user_submissions[user_id] += len(user_history)
             self.user_defect_counts[user_id] += user_history.sum()
 
@@ -53,8 +54,8 @@ class StudentFrequencyModel(StudentPrioritizationModel, FrequencyBasedModel):
 
     def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
-        self.user_submissions = defaultdict(DefaultDictFactory(0))
-        self.user_defect_counts = defaultdict(DefaultDictFactory(pd.Series(0, index=self.defects.index, dtype=int)))
+        self.user_submissions = {}
+        self.user_defect_counts = {}
         self.user_defect_freqs = pd.DataFrame(columns=self.defects.index, dtype=float)
 
         return self
@@ -112,7 +113,7 @@ class StudentCharacteristicModel(ZScoreBasedModel, StudentFrequencyModel):
             presence.shape[0], new_mean, new_var, self.global_samples, self.global_mean, self.global_var
         )
 
-        self.user_z_scores = self.user_defect_freqs - self.global_mean / self.global_var.pow(0.5).replace(0, 1)
+        self.user_z_scores = (self.user_defect_freqs - self.global_mean) / self.global_var.pow(0.5).replace(0, 1)
 
     def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
@@ -152,7 +153,7 @@ class StudentEncounteredBeforeModel(StudentPrioritizationModel, FrequencyBasedMo
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
         """Initialize the model."""
         super().__init__(items, defects, *args, **kwargs)
-        self.user_counters = defaultdict(DefaultDictFactory(pd.Series(np.nan, index=self.defects.index, dtype=int)))
+        self.user_counters = {}
         self.user_weights = pd.DataFrame(columns=self.defects.index, dtype=float)
 
     def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
@@ -168,6 +169,8 @@ class StudentEncounteredBeforeModel(StudentPrioritizationModel, FrequencyBasedMo
         user_histories = defect_presence.groupby(submissions["user"])
 
         for user_id, user_history in user_histories:
+            if user_id not in self.user_counters:
+                self.user_counters[user_id] = pd.Series(np.nan, index=self.defects.index, dtype=int)
             counter = self.user_counters[user_id]
 
             for _, defect_presence in user_history.iterrows():
@@ -180,7 +183,7 @@ class StudentEncounteredBeforeModel(StudentPrioritizationModel, FrequencyBasedMo
 
     def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""
-        self.user_counters = defaultdict(DefaultDictFactory(pd.Series(np.nan, index=self.defects.index, dtype=int)))
+        self.user_counters = {}
         self.user_weights = pd.DataFrame(columns=self.defects.index, dtype=float)
 
         return self

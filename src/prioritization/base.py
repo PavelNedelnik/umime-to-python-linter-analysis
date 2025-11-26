@@ -17,7 +17,7 @@ from scipy.stats import norm
 
 Z_SCORE_PERCENTILES = [0.10, 0.30, 0.70, 0.90]
 FREQ_PERCENTILES = [0.25, 0.50, 0.75]
-MIN_HURDLE = 1e-4
+MIN_HURDLE = 1e-3
 
 
 class PrioritizationModel(ABC):
@@ -256,7 +256,7 @@ class ZScoreBasedModel(PrioritizationModel, ABC):
         """Set fixed threshold boundaries for the -2 to +2 scale."""
         vals = self.get_model_weights().values.flatten()
         if len(vals) > 0:
-            self.thresholds = np.quantile(vals, Z_SCORE_PERCENTILES)
+            self.thresholds = list(np.quantile(vals, Z_SCORE_PERCENTILES))
         else:
             self.thresholds = np.zeros(4)
 
