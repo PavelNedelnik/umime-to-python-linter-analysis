@@ -15,9 +15,6 @@ from src.prioritization.base import (
 )
 from src.prioritization.utils import combine_stats
 
-# Theoretical standard deviation cutoffs for the DefectMultiplicityModel
-SIGMA_CUTOFFS = np.array([-1.5, -0.5, 0.5, 1.5])
-
 
 class StudentFrequencyModel(StudentPrioritizationModel, FrequencyBasedModel):
     """Prioritizes defects based on a student's past frequency of making them."""
@@ -237,17 +234,6 @@ class DefectMultiplicityModel(ZScoreBasedModel, StudentPrioritizationModel):
         self.n_samples, self.mean, self.var = combine_stats(
             encountered, new_mean, new_var, self.n_samples, self.mean, self.var
         )
-
-    def _calculate_thresholds(self):
-        """
-        Set thresholds using Theoretical Standard Deviations.
-
-        Since this model computes an explicit Z-score but does not store
-        the history of all scores, we cannot use empirical percentiles.
-        Instead, we use the theoretical definition:
-        -1.5 / -0.5 / 0.5 / 1.5 sigmas.
-        """
-        self.thresholds = SIGMA_CUTOFFS
 
     def reset_model(self) -> PrioritizationModel:
         """Reset the model's internal state to its initial configuration."""

@@ -15,7 +15,8 @@ import pandas as pd
 from scipy.special import softmax
 from scipy.stats import norm
 
-Z_SCORE_PERCENTILES = [0.10, 0.30, 0.70, 0.90]
+# Theoretical standard deviation cutoffs
+SIGMA_CUTOFFS = np.array([-1.5, -0.5, 0.5, 1.5])
 FREQ_PERCENTILES = [0.25, 0.50, 0.75]
 MIN_HURDLE = 1e-3
 
@@ -254,11 +255,7 @@ class ZScoreBasedModel(PrioritizationModel, ABC):
 
     def _calculate_thresholds(self):
         """Set fixed threshold boundaries for the -2 to +2 scale."""
-        vals = self.get_model_weights().values.flatten()
-        if len(vals) > 0:
-            self.thresholds = list(np.quantile(vals, Z_SCORE_PERCENTILES))
-        else:
-            self.thresholds = np.zeros(4)
+        self.thresholds = SIGMA_CUTOFFS
 
     def discretize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Discretize scores into levels -2-2 using the fixed thresholds."""
