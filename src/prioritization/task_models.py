@@ -6,25 +6,26 @@ These models calculate a weight matrix where rows are tasks and columns are defe
 
 import pandas as pd
 
-from src.prioritization.base import FrequencyBasedModel, PrioritizationModel, TaskPrioritizationModel, ZScoreBasedModel
+from src.prioritization.base import (
+    FrequencyDiscretizationMixin,
+    PrioritizationModel,
+    TaskContextMixin,
+    ZScoreDiscretizationMixin,
+)
 from src.prioritization.utils import combine_stats
 
 
-class TaskCommonModel(TaskPrioritizationModel, FrequencyBasedModel):
-    """Prioritize defects based on how common they are for a given task."""
+class TaskFrequencyBase(TaskContextMixin, PrioritizationModel):
+    """Base class for models that count task submissions and defect frequencies."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
-        """Initialize the model with shared data."""
+        """Initialize the model with empty tracking structures."""
         super().__init__(items, defects, *args, **kwargs)
         self.n_samples = pd.Series(0, index=self.items.index, dtype=int)
         self.task_defect_freqs = pd.DataFrame(0, index=self.items.index, columns=self.defects.index, dtype=float)
 
-    def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
-        """Prioritize defects."""
-        return self.task_defect_freqs.loc[submission["item"]]
-
-    def _update_weights(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
-        """Update the model's state with a batch of new submissions."""
+    def _update_weights(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
+        """Update counts for each task and defect."""
         old_total = self.task_defect_freqs.multiply(self.n_samples, axis=0)
         new_samples = submissions["item"].value_counts().reindex(self.items.index, fill_value=0)
         new_total = (defect_counts > 0).groupby(submissions["item"]).mean()
@@ -34,15 +35,29 @@ class TaskCommonModel(TaskPrioritizationModel, FrequencyBasedModel):
         self.task_defect_freqs = (old_total + new_total).divide(self.n_samples.replace(0, 1), axis=0)
 
     def reset_model(self) -> PrioritizationModel:
-        """Reset the model's internal state to its initial configuration."""
-        self.n_samples = pd.Series(0, index=self.items.index, dtype=float)
+        """Reset the internal tracking structures."""
+        self.n_samples = pd.Series(0, index=self.items.index, dtype=int)
         self.task_defect_freqs = pd.DataFrame(0, index=self.items.index, columns=self.defects.index, dtype=float)
-
         return self
 
     def get_model_weights(self) -> pd.DataFrame:
         """Return the pre-computed task-defect frequency matrix."""
         return self.task_defect_freqs
+
+
+class TaskCommonModel(FrequencyDiscretizationMixin, TaskFrequencyBase):
+    """Prioritize defects based on how common they are for a given task."""
+
+    def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
+        """Prioritize defects."""
+        return self.task_defect_freqs.loc[submission["item"]]
+
+    def reset_model(self) -> PrioritizationModel:
+        """Reset the model's internal state to its initial configuration."""
+        self.n_samples = pd.Series(0, index=self.items.index, dtype=float)
+        self.task_defect_freqs = pd.DataFrame(0, index=self.items.index, columns=self.defects.index, dtype=float)
+
+        return self
 
     @classmethod
     def get_model_name(cls) -> str:  # noqa: D102
@@ -61,7 +76,7 @@ class TaskCommonModel(TaskPrioritizationModel, FrequencyBasedModel):
         return "Higher = more students introduce this defect."
 
 
-class TaskCharacteristicModel(ZScoreBasedModel, TaskCommonModel):
+class TaskCharacteristicModel(ZScoreDiscretizationMixin, TaskFrequencyBase):
     """Prioritizes defects that are unusually common for a given task."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
@@ -79,7 +94,7 @@ class TaskCharacteristicModel(ZScoreBasedModel, TaskCommonModel):
 
     def _update_weights(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame) -> PrioritizationModel:
         """Update the model's state with a batch of new submissions."""
-        super()._update_weights(submissions, defect_counts)
+        TaskFrequencyBase._update_weights(self, submissions, defect_counts)
 
         presence = (defect_counts > 0).astype(int)
 

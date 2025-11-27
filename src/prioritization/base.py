@@ -201,33 +201,38 @@ class PrioritizationModel(ABC):
         return obj
 
 
-class StudentPrioritizationModel(PrioritizationModel, ABC):
-    """
-    Provide a base for all student-pure prioritization models.
-
-    These models have a bulk `update` method for learning and
-    must return a student-defect weight matrix.
-    """
-
-    def get_context_type(self) -> str:
-        """Return the type of context the model uses."""
-        return "student"
+# ---------------------------------------------------------------------------
+# Context mixins (purely structural)
+# ---------------------------------------------------------------------------
 
 
-class TaskPrioritizationModel(PrioritizationModel, ABC):
-    """
-    Provide a base class for models that prioritize based on task context.
+class TaskContextMixin:
+    """Provide a base for models that use task context."""
 
-    These models calculate a weight matrix where rows are tasks and columns are defects.
-    """
-
-    def get_context_type(self) -> str:
-        """Return the type of context the model uses."""
+    @classmethod
+    def get_context_type(cls) -> str:  # noqa: D102
         return "task"
 
 
-class FrequencyBasedModel(PrioritizationModel, ABC):
-    """Base class for models using frequency-like scores (0 to 1, skewed)."""
+class StudentContextMixin:
+    """Provide a base for models that use student context."""
+
+    @classmethod
+    def get_context_type(cls) -> str:  # noqa: D102
+        return "student"
+
+
+# ---------------------------------------------------------------------------
+# Discretization mixins (provide thresholds + discretize adjustments)
+# ---------------------------------------------------------------------------
+
+
+class FrequencyDiscretizationMixin:
+    """Mixin: frequency-like thresholds and 1-5 scale.
+
+    Expects concrete class to implement `get_model_weights()` returning a
+    DataFrame (or None). Sets `self.thresholds` to a numpy array.
+    """
 
     def _calculate_thresholds(self):
         """Set fixed threshold boundaries for the 1 to 5 scale."""
@@ -250,7 +255,7 @@ class FrequencyBasedModel(PrioritizationModel, ABC):
         return "1-5"
 
 
-class ZScoreBasedModel(PrioritizationModel, ABC):
+class ZScoreDiscretizationMixin:
     """Base class for models using Z-score like scores (symmetric around 0)."""
 
     def _calculate_thresholds(self):

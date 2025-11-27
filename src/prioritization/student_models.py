@@ -8,33 +8,30 @@ import numpy as np
 import pandas as pd
 
 from src.prioritization.base import (
-    FrequencyBasedModel,
+    FrequencyDiscretizationMixin,
     PrioritizationModel,
-    StudentPrioritizationModel,
-    ZScoreBasedModel,
+    StudentContextMixin,
+    ZScoreDiscretizationMixin,
 )
 from src.prioritization.utils import combine_stats
 
 
-class StudentFrequencyModel(StudentPrioritizationModel, FrequencyBasedModel):
-    """Prioritizes defects based on a student's past frequency of making them."""
+class StudentFrequencyBase(StudentContextMixin, PrioritizationModel):
+    """
+    Base class for models that count student submissions and defect frequencies.
+
+    Used by StudentCommonModel and StudentCharacteristicModel.
+    """
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
-        """Initialize the model."""
+        """Initialize the model with empty tracking structures."""
         super().__init__(items, defects, *args, **kwargs)
         self.user_submissions = {}
         self.user_defect_counts = {}
         self.user_defect_freqs = pd.DataFrame(columns=self.defects.index, dtype=float)
 
-    def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
-        """Prioritize defects."""
-        try:
-            return self.user_defect_freqs.loc[submission["user"]]
-        except KeyError:
-            return pd.Series(0, index=self.defects.index, dtype=float)
-
     def _update_weights(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
-        """Update the model's state with a batch of new submissions."""
+        """Update counts for each user and defect."""
         defect_presence = (defect_counts > 0).astype(int)
         user_histories = defect_presence.groupby(submissions["user"])
 
@@ -50,16 +47,26 @@ class StudentFrequencyModel(StudentPrioritizationModel, FrequencyBasedModel):
         )
 
     def reset_model(self) -> PrioritizationModel:
-        """Reset the model's internal state to its initial configuration."""
+        """Reset the internal tracking structures."""
         self.user_submissions = {}
         self.user_defect_counts = {}
         self.user_defect_freqs = pd.DataFrame(columns=self.defects.index, dtype=float)
-
         return self
 
     def get_model_weights(self) -> pd.DataFrame:
         """Return the pre-computed student-defect frequency matrix."""
         return self.user_defect_freqs
+
+
+class StudentCommonModel(FrequencyDiscretizationMixin, StudentFrequencyBase):
+    """Prioritizes defects based on a student's past frequency of making them."""
+
+    def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
+        """Prioritize defects."""
+        try:
+            return self.user_defect_freqs.loc[submission["user"]]
+        except KeyError:
+            return pd.Series(0, index=self.defects.index, dtype=float)
 
     @classmethod
     def get_model_name(cls) -> str:  # noqa: D102
@@ -78,7 +85,7 @@ class StudentFrequencyModel(StudentPrioritizationModel, FrequencyBasedModel):
         return "Higher = student introduces this defect more often."
 
 
-class StudentCharacteristicModel(ZScoreBasedModel, StudentFrequencyModel):
+class StudentCharacteristicModel(ZScoreDiscretizationMixin, StudentFrequencyBase):
     """Prioritize defects a student makes with a statistically significant frequency."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
@@ -99,7 +106,7 @@ class StudentCharacteristicModel(ZScoreBasedModel, StudentFrequencyModel):
 
     def _update_weights(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
         """Update the model's state with a batch of new submissions."""
-        super()._update_weights(submissions, defect_counts)
+        StudentFrequencyBase._update_weights(self, submissions, defect_counts)
 
         presence = (defect_counts > 0).astype(int)
 
@@ -144,7 +151,7 @@ class StudentCharacteristicModel(ZScoreBasedModel, StudentFrequencyModel):
         return "Higher = student introduces this defect more often compared to their peers."
 
 
-class StudentEncounteredBeforeModel(StudentPrioritizationModel, FrequencyBasedModel):
+class StudentEncounteredBeforeModel(StudentContextMixin, FrequencyDiscretizationMixin, PrioritizationModel):
     """Prioritizes defects that a student has encountered recently."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
@@ -206,7 +213,7 @@ class StudentEncounteredBeforeModel(StudentPrioritizationModel, FrequencyBasedMo
         return "Higher = student has introduced this defect more recently."
 
 
-class DefectMultiplicityModel(ZScoreBasedModel, StudentPrioritizationModel):
+class DefectMultiplicityModel(StudentContextMixin, ZScoreDiscretizationMixin, PrioritizationModel):
     """Prioritizes defects based on how many times they appear in a submission, normalized."""
 
     def __init__(self, items: pd.DataFrame, defects: pd.DataFrame, *args, **kwargs):
