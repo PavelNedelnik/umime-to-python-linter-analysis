@@ -1,44 +1,43 @@
 """Utility functions."""
 
 import math
+import warnings
 
 import numpy as np
 import pandas as pd
 
 
-def split_users(
-    log: pd.DataFrame, train_pct: float = 0.8, val_pct: float = 0.0, test_pct: float = 0.2, seed: int = 0
-) -> tuple[pd.Series, pd.Series, pd.Series]:
+def split_users(log: pd.DataFrame, splits: list[float], seed: int = 0) -> list[pd.Series]:
     """
-    Split the data into train and test sets, keeping submissions from the same user together.
+    Split the data, keeping submissions from the same user together.
 
-    Expects log and defect log to share index.
     Args:
         log: A DataFrame of submissions.
-        train_pct: The percentage of data to use for training.
-        val_pct: The percentage of data to use for validation.
-        test_pct: The percentage of data to use for testing.
+        splits: A list of train, val, and test split proportions.
+        seed: A random seed.
 
     Returns:
-        A tuple of pd.Series masking train, val, and test data.
+        A list of pd.Series masking users belonging to the corresponding split.
     """
-    all_users = np.sort(log["user"].unique())
+    unassigned_users = np.sort(log["user"].unique())
     rng = np.random.default_rng(seed)
-    all_users = rng.permutation(all_users)
+    unassigned_users = rng.permutation(unassigned_users)
 
-    train_pivot = int(len(all_users) * train_pct)
-    train_users = all_users[:train_pivot]
-    train_mask = log["user"].isin(train_users).copy()
+    if sum(splits) < 1:
+        warnings.warn("The sum of split proportions is less than 1. Some data will remain unassigned.")
+    elif sum(splits) > 1:
+        raise ValueError("Split proportions must sum to less than 1.")
 
-    val_pivot = int(len(all_users) * (train_pct + val_pct))
-    val_users = all_users[train_pivot:val_pivot]
-    val_mask = log["user"].isin(val_users).copy()
+    result = []
+    # some users might be lost to rounding errors
+    pivots = [int(len(unassigned_users) * split) for split in splits]
+    for pivot in pivots:
+        users, unassigned_users = unassigned_users[:pivot], unassigned_users[pivot:]
+        split_mask = log["user"].isin(users).copy()
 
-    test_pivot = int(len(all_users) * (train_pct + val_pct + test_pct))
-    test_users = all_users[val_pivot:test_pivot]
-    test_mask = log["user"].isin(test_users).copy()
+        result.append(split_mask)
 
-    return train_mask, val_mask, test_mask
+    return result
 
 
 def gini(array: np.ndarray) -> float:

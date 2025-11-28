@@ -49,17 +49,18 @@ def load_config():
     # Data partitions
     development_set = storage / "development_set"
     evaluation_set = storage / "evaluation_set"
-    hold_out_set = storage / "hold_out_set"
+    teacher_hold_out_set = storage / "teacher_hold_out_set"
+    student_hold_out_set = storage / "student_hold_out_set"
 
     # Cached results
     # models are stored here, because they are trained on both the development and evaluation sets
     trained_heuristics = evaluation_set / "trained_heuristics"
     evaluation_prioritizations = evaluation_set / "evaluation_prioritizations"
     model_metrics = evaluation_set / "model_metrics"
-    hold_out_prioritizations = hold_out_set / "hold_out_prioritizations"
+    teacher_hold_out_prioritizations = teacher_hold_out_set / "teacher_hold_out_prioritizations"
 
     # Benchmark dataset
-    benchmark_dataset = hold_out_set / "benchmark_dataset.csv"
+    benchmark_dataset = teacher_hold_out_set / "benchmark_dataset.csv"
 
     return {
         "DEBUG": debug,
@@ -78,11 +79,12 @@ def load_config():
             # Data partitions
             "development_set": development_set,
             "evaluation_set": evaluation_set,
-            "hold_out_set": hold_out_set,
+            "teacher_hold_out_set": teacher_hold_out_set,
+            "student_hold_out_set": student_hold_out_set,
             # Cached results
             "trained_heuristics": trained_heuristics,
             "evaluation_prioritizations": evaluation_prioritizations,
-            "hold_out_prioritizations": hold_out_prioritizations,
+            "teacher_hold_out_prioritizations": teacher_hold_out_prioritizations,
             "model_metrics": model_metrics,
             # Benchmark
             "benchmark_dataset": benchmark_dataset,
