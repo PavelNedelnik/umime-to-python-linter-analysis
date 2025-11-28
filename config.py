@@ -54,8 +54,9 @@ def load_config():
 
     # Cached results
     # models are stored here, because they are trained on both the development and evaluation sets
-    trained_heuristics = evaluation_set / "trained_heuristics"
+    evaluation_trained_heuristics = evaluation_set / "trained_heuristics"
     evaluation_prioritizations = evaluation_set / "evaluation_prioritizations"
+    hold_out_trained_heuristics = teacher_hold_out_set / "trained_heuristics"
     model_metrics = evaluation_set / "model_metrics"
     teacher_hold_out_prioritizations = teacher_hold_out_set / "teacher_hold_out_prioritizations"
 
@@ -82,7 +83,8 @@ def load_config():
             "teacher_hold_out_set": teacher_hold_out_set,
             "student_hold_out_set": student_hold_out_set,
             # Cached results
-            "trained_heuristics": trained_heuristics,
+            "evaluation_trained_heuristics": evaluation_trained_heuristics,
+            "hold_out_trained_heuristics": hold_out_trained_heuristics,
             "evaluation_prioritizations": evaluation_prioritizations,
             "teacher_hold_out_prioritizations": teacher_hold_out_prioritizations,
             "model_metrics": model_metrics,
