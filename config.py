@@ -47,13 +47,13 @@ def load_config():
     raw_survey_responses = raw_survey_dir / "responses.csv"
 
     # Data partitions
-    development_set = storage / "development_set"
+    train_set = storage / "train_set"
     evaluation_set = storage / "evaluation_set"
     teacher_hold_out_set = storage / "teacher_hold_out_set"
     student_hold_out_set = storage / "student_hold_out_set"
 
     # Cached results
-    # models are stored here, because they are trained on both the development and evaluation sets
+    # models are stored here, because they are trained on both the train and evaluation sets
     evaluation_trained_heuristics = evaluation_set / "trained_heuristics"
     evaluation_prioritizations = evaluation_set / "evaluation_prioritizations"
     hold_out_trained_heuristics = teacher_hold_out_set / "trained_heuristics"
@@ -78,7 +78,7 @@ def load_config():
             "raw_survey_feedback": raw_survey_feedback,
             "raw_survey_responses": raw_survey_responses,
             # Data partitions
-            "development_set": development_set,
+            "train_set": train_set,
             "evaluation_set": evaluation_set,
             "teacher_hold_out_set": teacher_hold_out_set,
             "student_hold_out_set": student_hold_out_set,
