@@ -21,7 +21,7 @@ from .data_access import load_csv, save_csv_row
 # ============================================================
 
 # Frequency of showing the feedback prompt (every N answered questions).
-FEEDBACK_FREQUENCY = 3
+FEEDBACK_FREQUENCY = 10
 
 SCALE_MAP = {
     "1-5": {
