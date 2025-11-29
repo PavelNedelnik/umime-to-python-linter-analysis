@@ -6,11 +6,13 @@ These models calculate a weight matrix where rows are students and columns are d
 
 import numpy as np
 import pandas as pd
+from scipy.stats import norm
 
-from src.prioritization.base import (
+from src.prioritization.base import PrioritizationModel, StudentContextMixin
+from src.prioritization.discretization import (
+    PERCENTILES,
+    STUDENT_ENCOUNTERED_DISCRETIZATION_THRESHOLDS,
     FrequencyDiscretizationMixin,
-    PrioritizationModel,
-    StudentContextMixin,
     ZScoreDiscretizationMixin,
 )
 from src.prioritization.utils import combine_stats
@@ -29,6 +31,10 @@ class StudentFrequencyBase(StudentContextMixin, PrioritizationModel):
         self.user_submissions = {}
         self.user_defect_counts = {}
         self.user_defect_freqs = pd.DataFrame(columns=self.defects.index, dtype=float)
+
+    def _get_count(self) -> np.array:
+        """Return the count of each student-defect pair for traffic weights."""
+        return self.user_defect_freqs.values.flatten()
 
     def _update_weights(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
         """Update counts for each user and defect."""
@@ -160,6 +166,10 @@ class StudentEncounteredBeforeModel(StudentContextMixin, FrequencyDiscretization
         self.user_counters = {}
         self.user_weights = pd.DataFrame(columns=self.defects.index, dtype=float)
 
+    def _calculate_thresholds(self):
+        """Thresholds are manually set."""
+        self.thresholds = 1 / np.array(STUDENT_ENCOUNTERED_DISCRETIZATION_THRESHOLDS)
+
     def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Prioritize defects based on how recently they were encountered."""
         try:
@@ -222,6 +232,10 @@ class DefectMultiplicityModel(StudentContextMixin, ZScoreDiscretizationMixin, Pr
         self.n_samples = pd.Series(0, index=self.defects.index, dtype=int)
         self.mean = pd.Series(0, index=self.defects.index, dtype=int)
         self.var = pd.Series(0, index=self.defects.index, dtype=int)
+
+    def _calculate_thresholds(self):
+        """Programmatically compute theoretical Z-score thresholds."""
+        self.thresholds = norm.ppf(PERCENTILES)
 
     def _calculate_scores(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
         """Prioritize defects based on normalized multiplicity."""

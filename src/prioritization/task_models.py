@@ -4,14 +4,11 @@ This module contains prioritization models that focus purely on task context.
 These models calculate a weight matrix where rows are tasks and columns are defects.
 """
 
+import numpy as np
 import pandas as pd
 
-from src.prioritization.base import (
-    FrequencyDiscretizationMixin,
-    PrioritizationModel,
-    TaskContextMixin,
-    ZScoreDiscretizationMixin,
-)
+from src.prioritization.base import PrioritizationModel, TaskContextMixin
+from src.prioritization.discretization import FrequencyDiscretizationMixin, ZScoreDiscretizationMixin
 from src.prioritization.utils import combine_stats
 
 
@@ -23,6 +20,10 @@ class TaskFrequencyBase(TaskContextMixin, PrioritizationModel):
         super().__init__(items, defects, *args, **kwargs)
         self.n_samples = pd.Series(0, index=self.items.index, dtype=int)
         self.task_defect_freqs = pd.DataFrame(0, index=self.items.index, columns=self.defects.index, dtype=float)
+
+    def _get_count(self) -> np.array:
+        """Return the count of each task-defect pair for traffic weights."""
+        return self.task_defect_freqs.values.flatten()
 
     def _update_weights(self, submissions: pd.DataFrame, defect_counts: pd.DataFrame):
         """Update counts for each task and defect."""

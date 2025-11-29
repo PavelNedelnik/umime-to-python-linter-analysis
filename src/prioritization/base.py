@@ -15,11 +15,6 @@ import pandas as pd
 from scipy.special import softmax
 from scipy.stats import norm
 
-# Theoretical standard deviation cutoffs
-SIGMA_CUTOFFS = np.array([-1.5, -0.5, 0.5, 1.5])
-FREQ_PERCENTILES = [0.25, 0.50, 0.75]
-MIN_HURDLE = 1e-3
-
 
 class PrioritizationModel(ABC):
     """
@@ -220,53 +215,3 @@ class StudentContextMixin:
     @classmethod
     def get_context_type(cls) -> str:  # noqa: D102
         return "student"
-
-
-# ---------------------------------------------------------------------------
-# Discretization mixins (provide thresholds + discretize adjustments)
-# ---------------------------------------------------------------------------
-
-
-class FrequencyDiscretizationMixin:
-    """Mixin: frequency-like thresholds and 1-5 scale.
-
-    Expects concrete class to implement `get_model_weights()` returning a
-    DataFrame (or None). Sets `self.thresholds` to a numpy array.
-    """
-
-    def _calculate_thresholds(self):
-        """Set fixed threshold boundaries for the 1 to 5 scale."""
-        # Only consider weights passing the minimum hurdle
-        vals = self.get_model_weights().values.flatten()
-        non_zeros = vals[vals > MIN_HURDLE]
-
-        if len(non_zeros) > 0:
-            self.thresholds = [MIN_HURDLE] + list(np.quantile(non_zeros, FREQ_PERCENTILES))
-        else:
-            self.thresholds = np.zeros(4)
-
-    def discretize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
-        """Discretize scores into levels 1-5 using the fixed thresholds."""
-        return super().discretize(submission, defect_counts) + 1
-
-    @classmethod
-    def get_discretization_scale(cls) -> str:
-        """Return the name of the model's discretization scale (e.g., '1-5')."""
-        return "1-5"
-
-
-class ZScoreDiscretizationMixin:
-    """Base class for models using Z-score like scores (symmetric around 0)."""
-
-    def _calculate_thresholds(self):
-        """Set fixed threshold boundaries for the -2 to +2 scale."""
-        self.thresholds = SIGMA_CUTOFFS
-
-    def discretize(self, submission: pd.Series, defect_counts: pd.Series) -> pd.Series:
-        """Discretize scores into levels -2-2 using the fixed thresholds."""
-        return super().discretize(submission, defect_counts) - 2
-
-    @classmethod
-    def get_discretization_scale(cls) -> str:
-        """Return the name of the model's discretization scale (e.g., '-2-2')."""
-        return "-2-2"
