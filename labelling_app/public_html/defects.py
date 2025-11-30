@@ -24,7 +24,7 @@ from survey_pages.utils.shared_components import render_html_page
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_PATH = BASE_DIR / "survey_data" / "ipython_0.0.0"
+DATA_PATH = BASE_DIR / "survey_data" / "production"
 
 # ============================================================
 # ====================  DATA FILE SETUP  =====================
