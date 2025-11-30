@@ -248,17 +248,18 @@ a {
     min-width: 600px;
 }
 
-.level-very-low { background-color: #e0f2f1; }
-.level-low { background-color: #b2dfdb; }
-.level-medium { background-color: #ffffff6a; }
-.level-high { background-color: #80cbc4; }
+.level-very-low  { background-color: #e0f7f7; }
+.level-low       { background-color: #b2e5e2; }
+.level-medium    { background-color: #ffffff80; }
+.level-high      { background-color: #7cd4c7; }
 .level-very-high { background-color: #26a69a; }
 
-.level-much-lower { background-color: #d1c4e9; }
-.level-lower { background-color: #b39ddb; }
-.level-average { background-color: #ffffff6a; }
-.level-higher { background-color: #ffe082; }
-.level-much-higher { background-color: #ffca28; }
+.level-much-lower { background-color: #bba6e8; }
+.level-lower      { background-color: #d7c8f3;}
+.level-average    { background-color: #ffffff80; }
+.level-higher     { background-color: #ffe28a; }
+.level-much-higher{ background-color: #ffca28; }
+
 
 .heuristics-collapse summary {
     cursor: pointer;
