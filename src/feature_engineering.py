@@ -93,8 +93,9 @@ def _calculate_metadata_features(
 
     item_topic = items["topic"].loc[pairwise_df_with_scores["item"]].reset_index(drop=True).rename("item")
 
-    metadata_encoder = OneHotEncoder()
-
+    all_defect_types = defects["defect type"].unique()
+    all_item_topics = items["topic"].unique()
+    metadata_encoder = OneHotEncoder(categories=[all_defect_types, all_defect_types, all_item_topics])
     metadata = metadata_encoder.fit_transform(pd.concat([left_type, right_type, item_topic], axis=1))
 
     metadata = pd.DataFrame(metadata.toarray(), columns=metadata_encoder.get_feature_names_out())
