@@ -61,7 +61,7 @@ def load_config():
     teacher_hold_out_prioritizations = teacher_hold_out_set / "teacher_hold_out_prioritizations"
 
     # Benchmark dataset
-    benchmark_dataset = teacher_hold_out_set / "benchmark_dataset.csv"
+    benchmark_dataset = teacher_hold_out_set / "benchmark_dataset"
 
     return {
         "DEBUG": debug,
