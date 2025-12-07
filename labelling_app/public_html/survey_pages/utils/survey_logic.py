@@ -6,6 +6,7 @@ selecting questions, and recording survey answers.
 """
 
 import http.cookies
+import math
 import os
 import random
 import uuid
@@ -129,6 +130,17 @@ def save_feedback(data_path: Path, user_id: str, feedback_text: str):
 # ============================================================
 
 
+def _compute_entropy(votes, k):
+    counts = Counter(votes)
+    total = len(votes)
+
+    probs = [c / total for c in counts.values()]
+    H = -sum(p * math.log2(p) for p in probs)
+
+    H_norm = H / math.log2(k)  # normalized entropy
+    return H_norm
+
+
 def get_next_question(data_path: Path, user_id: str) -> Optional[Dict]:
     """
     Return the next question for the user.
@@ -161,14 +173,18 @@ def get_next_question(data_path: Path, user_id: str) -> Optional[Dict]:
     if len(user_unanswered_questions) == 0:
         return None
 
+    # compute number of possibilities for each question
+    defects = load_csv(data_path / "defects.csv")
+    num_possibilities = defaultdict(lambda: 0)
+    for d in defects:
+        num_possibilities[d["submission id"]] += 1
+
     # Compute uncertainty for each question
     uncertainty_scores = []
     for question in user_unanswered_questions:
         votes = total_responses.get(question["index"], [])
         total_votes = len(votes)
-        most_common_answer_count = Counter(votes).most_common(1)[0][1]
-        consensus = most_common_answer_count / total_votes
-        score = (1 / (1 + total_votes)) + (1 - consensus)  # uncertainty formula
+        score = (1 / (1 + total_votes)) + _compute_entropy(votes, num_possibilities[question["index"]])
         uncertainty_scores.append((score, question))
 
     # Return the question with the highest uncertainty
