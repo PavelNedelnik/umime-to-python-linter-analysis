@@ -143,6 +143,9 @@ def _create_original_features(
                     description=f"{base}: {side.lower()} side {dtype.lower()} value",
                 )
 
+    # Naive severity is only discrete
+    continuous_scores = continuous_scores.drop(columns="Naive Severity")
+
     # Attach discrete and continuous separately
     attach(discrete_scores, "Discrete")
     attach(continuous_scores, "Continuous")
