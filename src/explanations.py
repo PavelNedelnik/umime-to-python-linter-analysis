@@ -141,7 +141,7 @@ def explain_submission(
             left_is_defect = row["left"] == defect
             pred = row["model_prediction"]
 
-            # Check if model agrees with final ranking for this pair
+            # Allow only explanations that agree with the final ranking
             aligns = (left_is_defect and pred == 1) or ((not left_is_defect) and pred == 0)
             if not aligns:
                 continue
@@ -150,7 +150,7 @@ def explain_submission(
             for base in row_meaningful_bases.get(r_idx, set()):
                 base_to_peers[base].append(other)
 
-        # No supporting bases?
+        # Handle no support
         if not base_to_peers:
             explanations[defect] = ["Placed here: no heuristic clearly distinguished it from lower-ranked defects."]
             continue
@@ -160,10 +160,10 @@ def explain_submission(
 
         sentences = []
         for base, peers in ordered[:MAX_EXPLANATION_LENGTH]:
-            # Convert peers → ranks
+            # Convert peers to ranks
             peer_ranks = [rank_pos[p] for p in peers]
 
-            # Signed value = sum of contributions for this base (take from the FIRST peer, same sign)
+            # Sum of contributions to determine rank
             signed_value = row_base_contribs[pair_idx[(defect, peers[0])]][base]
 
             sent = _assemble_sentence(base, peer_ranks, signed_value)
@@ -191,21 +191,17 @@ def explain_baseline_submission(
 ) -> Dict[int, List[str]]:
     """Student-friendly explanations for the baseline ranking (primary + secondary heuristic)."""
 
+    # Get base names
     def normalize(col):
         return col.split(" (")[0]
 
     primary_bases = {normalize(c) for c in primary_cols}
     secondary_bases = {normalize(c) for c in secondary_cols}
 
-    # Pick one (baseline usually uses only one)
-    primary_base = list(primary_bases)[0] if primary_bases else None
-    secondary_base = list(secondary_bases)[0] if secondary_bases else None
+    base_for_primary = list(primary_bases)[0] if primary_bases else None
+    base_for_secondary = list(secondary_bases)[0] if secondary_bases else None
 
-    # Base names must still map to BASE_TO_NOUN
-    base_for_primary = primary_base
-    base_for_secondary = secondary_base
-
-    # Build pair → index
+    # Build pair to index
     pair_idx = {}
     for idx, row in submission_df.iterrows():
         pair_idx[(row["left"], row["right"])] = idx
@@ -232,21 +228,21 @@ def explain_baseline_submission(
             tiebreak = row["baseline_tiebreak"]
             defect_is_left = row["left"] == defect
 
-            # PRIMARY decision
+            # primary decision
             primary_win = (defect_is_left and pred == 1) or ((not defect_is_left) and pred == 0)
 
             if primary_win:
                 primary_peers.append(other)
                 continue
 
-            # SECONDARY tiebreak decision
+            # secondary tiebreak
             secondary_win = (defect_is_left and tiebreak > 0) or ((not defect_is_left) and tiebreak < 0)
             if secondary_win:
                 secondary_peers.append(other)
 
         sentences = []
 
-        # --- Primary heuristic explanation ---
+        # Primary explanation
         if primary_peers:
             peers_ranks = [rank_pos[p] for p in primary_peers]
             # Baseline always uses "more" because it is a heuristic score, not a signed LR contribution.
@@ -254,7 +250,7 @@ def explain_baseline_submission(
             sent = _assemble_sentence(base_for_primary, peers_ranks, signed_value=1.0)
             sentences.append(sent)
 
-        # --- Secondary explanation ---
+        # Optional secondary explanation
         if secondary_peers and base_for_secondary:
             peers_ranks = [rank_pos[p] for p in secondary_peers]
             sent = _assemble_sentence(base_for_secondary, peers_ranks, signed_value=1.0)
