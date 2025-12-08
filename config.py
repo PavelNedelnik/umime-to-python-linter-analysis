@@ -45,6 +45,7 @@ def load_config():
     raw_survey_dir = Path(cfg["paths"]["raw_survey_responses"])
     raw_survey_feedback = raw_survey_dir / "feedback.csv"
     raw_survey_responses = raw_survey_dir / "responses.csv"
+    student_study_results = Path(cfg["paths"]["student_study_results"])
 
     # Data partitions
     train_set = storage / "train_set"
@@ -77,6 +78,7 @@ def load_config():
             "raw_defect_table": raw_defect_table,
             "raw_survey_feedback": raw_survey_feedback,
             "raw_survey_responses": raw_survey_responses,
+            "student_study_results": student_study_results,
             # Data partitions
             "train_set": train_set,
             "evaluation_set": evaluation_set,

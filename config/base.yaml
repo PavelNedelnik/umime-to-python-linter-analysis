@@ -10,6 +10,7 @@ paths:
   raw_defect_table: "data/defects.csv"
   raw_survey_responses: "data/survey_responses/"
   survey_data: "labelling_app/survey_data/"
+  student_study_results: "data/study_results/"
 
 
 defaults:
