@@ -1,255 +1,267 @@
-"""Explanations of the final model ranking."""
+"""Student-friendly explanation generation for model and baseline rankings."""
 
-import numpy as np
-import pandas as pd
-
-MAX_EXPLANATION_LENGTH = 3
-MIN_CONTRIBUTION = 0.01
-
-from collections import Counter, defaultdict
+from collections import defaultdict
 from typing import Dict, List
 
 import numpy as np
 import pandas as pd
 
-# constants already in your notebook; if not, set defaults here
+# ======================================================================
+# = CONFIG
+# ======================================================================
+
 MAX_EXPLANATION_LENGTH = 3
 MIN_CONTRIBUTION = 1e-3
 
 
+# Student-friendly names (based on educator table)
+BASE_TO_CLAUSES = {
+    "Task Common": {
+        "pos": "it is more common in this task",
+        "neg": "it is less common in this task",
+    },
+    "Task Characteristic": {
+        "pos": "it is more typical of this task",
+        "neg": "it is less typical of this task",
+    },
+    "Student Common": {
+        "pos": "the student introduces this defect more often",
+        "neg": "the student introduces this defect less often",
+    },
+    "Student Characteristic": {
+        "pos": "the student introduces this defect more often than their peers",
+        "neg": "the student introduces this defect less often than their peers",
+    },
+    "Student Encountered": {
+        "pos": "the student has repeated this defect more recently",
+        "neg": "the student has repeated this defect longer time ago",
+    },
+    "Defect Multiplicity": {
+        "pos": "there are more instances of it in this submission",
+        "neg": "there are fewer instances of it in this submission",
+    },
+    "Naive Severity": {
+        "pos": "it is considered more severe",
+        "neg": "it is considered less severe",
+    },
+}
+
+
+# ======================================================================
+# = HELPER FUNCTIONS
+# ======================================================================
+
+
+def _assemble_sentence(base: str, peers_ranks: List[int], signed_value: float) -> str:
+    """Generate final student-visible explanation."""
+    if not peers_ranks:
+        return ""
+
+    clause_dict = BASE_TO_CLAUSES.get(base)
+    if clause_dict is None:
+        return ""
+
+    clause = clause_dict["pos"] if signed_value >= 0 else clause_dict["neg"]
+
+    if len(peers_ranks) == 1:
+        return f"Ranked above rank {peers_ranks[0]} because {clause}."
+    else:
+        ranks_text = ", ".join(str(r) for r in peers_ranks)
+        return f"Ranked above ranks {ranks_text} because {clause}."
+
+
+def _aggregate_base_contributions(contrib_dict: Dict[str, float], catalog) -> Dict[str, float]:
+    base_sum = defaultdict(float)
+
+    for col, val in contrib_dict.items():
+        meta = catalog.get(col)
+        if meta is None:
+            continue
+        if meta.base == "Metadata":
+            continue
+        base_sum[meta.base] += val
+
+    return dict(base_sum)
+
+
+# ======================================================================
+# = MODEL EXPLANATIONS
+# ======================================================================
+
+
 def explain_submission(
     submission_df: pd.DataFrame,
-    ranking: List,
+    ranking: List[int],
     X: pd.DataFrame,
     weights: np.ndarray,
     catalog: Dict[str, object],
-) -> Dict:
-    """Explain the ordering of defects in a submission as determined by a Logistic Regression model.
-
-    Args:
-        submission_df: DataFrame of pairwise rows for this submission (same order as X).
-        ranking: List of defect ids in ranked order (highest first).
-        X: Feature matrix (rows correspond to submission_df rows) used by ordering model.
-        weights: 1D array of model weights aligned with X.columns.
-        catalog: FeatureCatalog mapping column name -> FeatureMeta.
-    Returns:
-        dict: mapping defect_id -> list[str] (explanation sentences).
-    """
-    assert len(X) == len(submission_df)
-    # Map pair to row index for fast lookup
-    pair_to_idx = {}
+) -> Dict[int, List[str]]:
+    """Generate student-friendly explanations for the model-based ranking."""
+    # Map pair to row index
+    pair_idx = {}
     for idx, row in submission_df.iterrows():
-        pair_to_idx[(row["left"], row["right"])] = idx
-        pair_to_idx[(row["right"], row["left"])] = idx  # allow reversed lookup
+        pair_idx[(row["left"], row["right"])] = idx
+        pair_idx[(row["right"], row["left"])] = idx
 
-    # Precompute contributions (array) for each row index
-    # contribution per column = weight * x_value
-    contributions = {}
+    # Compute contributions for each row: weight * feature_value
     cols = list(X.columns)
-    w = np.asarray(weights)
+    w = np.asarray(weights, float)
 
+    row_contribs = {}
     for idx in X.index:
         xv = X.loc[idx].values.astype(float)
-        contrib = w * xv  # signed contributions
-        contributions[idx] = dict(zip(cols, contrib))
+        contrib = w * xv
+        row_contribs[idx] = dict(zip(cols, contrib))
 
-    # Helper: aggregate column-level contributions into base-level contributions
-    def row_base_contribs(row_idx):
-        """Return dict base -> signed contribution sum for the row."""
-        col_contribs = contributions[row_idx]
-        base_acc = defaultdict(float)
-        for colname, val in col_contribs.items():
-            meta = catalog.get(colname)
-            if meta.base == "Metadata":
-                continue
-            base_acc[meta.base] += val
-        return base_acc
+    # For each row, compute base-level contributions
+    row_base_contribs = {idx: _aggregate_base_contributions(cd, catalog) for idx, cd in row_contribs.items()}
 
-    # For each pair, compute which bases are "meaningful" (abs >= min_contribution)
-    pair_base_support = {}  # row_idx -> set of bases that meaningfully supported the winner
-    for idx in submission_df.index:
-        base_acc = row_base_contribs(idx)
-        # Keep bases whose absolute signed contribution >= threshold
-        meaningful = {b for b, v in base_acc.items() if abs(v) >= MIN_CONTRIBUTION}
-        pair_base_support[idx] = meaningful
+    # Which bases are "meaningful" for a row?
+    row_meaningful_bases = {
+        idx: {b for b, v in base_sum.items() if abs(v) >= MIN_CONTRIBUTION}
+        for idx, base_sum in row_base_contribs.items()
+    }
 
-    # Map defect -> aggregated supporting bases -> list of other defects that contributed
+    # Precompute ranks
+    rank_pos = {d: i + 1 for i, d in enumerate(ranking)}
+
     explanations = {}
-    # Precompute rank position lookup (1-based for student-friendly)
-    rank_pos = {def_id: pos + 1 for pos, def_id in enumerate(ranking)}
 
-    # For each defect in ranking, examine comparisons vs defects ranked below it
+    # For each defect, compare against lower-ranked defects
     for i, defect in enumerate(ranking):
-        below = ranking[i + 1 :]
-        # collect base -> list of (other_defect, pair_idx) that supported defect over other_defect
+        lower = ranking[i + 1 :]
         base_to_peers = defaultdict(list)
 
-        for other in below:
-            # find pair row and ensure the model's pairwise prediction aligns with final ranking
-            if (defect, other) not in pair_to_idx:
+        for other in lower:
+            if (defect, other) not in pair_idx:
                 continue
-            row_idx = pair_to_idx[(defect, other)]
-            row = submission_df.loc[row_idx]
-            # Determine which side corresponds to defect in this row
-            left_is_defect = row["left"] == defect
-            pred = row.get("model_prediction")
+            r_idx = pair_idx[(defect, other)]
+            row = submission_df.loc[r_idx]
 
+            left_is_defect = row["left"] == defect
+            pred = row["model_prediction"]
+
+            # Check if model agrees with final ranking for this pair
             aligns = (left_is_defect and pred == 1) or ((not left_is_defect) and pred == 0)
             if not aligns:
-                # The pairwise model disagrees with final ranking for this pair; skip
                 continue
 
-            # Which bases supported this pair (from pair_base_support)
-            supporting_bases = pair_base_support.get(row_idx, set())
-            for b in supporting_bases:
-                base_to_peers[b].append(other)
+            # Add bases that supported this pair
+            for base in row_meaningful_bases.get(r_idx, set()):
+                base_to_peers[base].append(other)
 
-        if len(base_to_peers) == 0:
-            # fallback short message
-            explanations[defect] = ["No single heuristic strongly supported this defect over those ranked below."]
+        # No supporting bases?
+        if not base_to_peers:
+            explanations[defect] = ["Placed here: no heuristic clearly distinguished it from lower-ranked defects."]
             continue
 
-        # Rank bases by number of supporting peers (descending)
-        base_counts = sorted(base_to_peers.items(), key=lambda kv: len(kv[1]), reverse=True)
+        # Order bases by number of peers supported
+        ordered = sorted(base_to_peers.items(), key=lambda kv: len(kv[1]), reverse=True)
 
         sentences = []
-        for base, peers in base_counts[:MAX_EXPLANATION_LENGTH]:
-            # Keep peers unique and in the same order as ranking
-            unique_peers = []
-            seen = set()
-            for p in peers:
-                if p in seen:
-                    continue
-                seen.add(p)
-                unique_peers.append(p)
-            # map to "defect {id} (rank N)" strings and join
-            mapped = ", ".join(f"{p} (rank {rank_pos.get(p, '?')})" for p in unique_peers)
-            # sentence: "More <base> than defects X and Y."
-            # use simple phrasing — base lowercased
-            if len(unique_peers) == 1:
-                sent = f"More {base.lower()} than defect {mapped}."
-            else:
-                sent = f"More {base.lower()} than defects {mapped}."
-            sentences.append(sent)
+        for base, peers in ordered[:MAX_EXPLANATION_LENGTH]:
+            # Convert peers → ranks
+            peer_ranks = [rank_pos[p] for p in peers]
+
+            # Signed value = sum of contributions for this base (take from the FIRST peer, same sign)
+            signed_value = row_base_contribs[pair_idx[(defect, peers[0])]][base]
+
+            sent = _assemble_sentence(base, peer_ranks, signed_value)
+            if sent:
+                sentences.append(sent)
+
+        if not sentences:
+            sentences = ["Placed here: no heuristic clearly distinguished it from lower-ranked defects."]
 
         explanations[defect] = sentences
 
     return explanations
 
 
+# ======================================================================
+# = BASELINE EXPLANATIONS
+# ======================================================================
+
+
 def explain_baseline_submission(
     submission_df: pd.DataFrame,
-    ranking: list,
-    primary_cols: list,
-    secondary_cols: list,
-) -> dict:
-    """Explain the ordering of defects in a submission as determined by the baseline model.
+    ranking: List[int],
+    primary_cols: List[str],
+    secondary_cols: List[str],
+) -> Dict[int, List[str]]:
+    """Student-friendly explanations for the baseline ranking (primary + secondary heuristic)."""
 
-    Args:
-        submission_df: Pairwise rows for this submission.
-        ranking: Final baseline ranking of defect ids (highest first).
-        primary_cols: List of feature names used by the primary baseline model.
-        secondary_cols: List of feature names used by the secondary baseline model.
-
-    Returns:
-        dict: defect_id -> list[str]
-    """
-
-    # For convenience, build mapping from feature name to base heuristic
     def normalize(col):
-        # e.g. "Task Common (Difference Discrete)" → "Task Common"
         return col.split(" (")[0]
 
     primary_bases = {normalize(c) for c in primary_cols}
     secondary_bases = {normalize(c) for c in secondary_cols}
 
-    # Identify the *dominant* base (usually exactly one)
-    # If multiple: include all.
-    primary_base = list(primary_bases)
-    secondary_base = list(secondary_bases)
+    # Pick one (baseline usually uses only one)
+    primary_base = list(primary_bases)[0] if primary_bases else None
+    secondary_base = list(secondary_bases)[0] if secondary_bases else None
 
-    # Make student-friendly descriptions
-    def base_desc(b):
-        return b.lower()
+    # Base names must still map to BASE_TO_NOUN
+    base_for_primary = primary_base
+    base_for_secondary = secondary_base
 
-    # Precompute rank lookup
-    rank_pos = {d: i + 1 for i, d in enumerate(ranking)}
-
-    # Build lookup: (d1, d2) → row index
-    pair_index = {}
+    # Build pair → index
+    pair_idx = {}
     for idx, row in submission_df.iterrows():
-        pair_index[(row["left"], row["right"])] = idx
-        pair_index[(row["right"], row["left"])] = idx
+        pair_idx[(row["left"], row["right"])] = idx
+        pair_idx[(row["right"], row["left"])] = idx
+
+    rank_pos = {d: i + 1 for i, d in enumerate(ranking)}
 
     explanations = {}
 
     for i, defect in enumerate(ranking):
-        below = ranking[i + 1 :]
+        lower = ranking[i + 1 :]
 
-        primary_peers = []  # defects ranked lower because of primary heuristic
-        secondary_peers = []  # defects tied in primary but broken by secondary
+        primary_peers = []
+        secondary_peers = []
 
-        for other in below:
-            if (defect, other) not in pair_index:
+        for other in lower:
+            if (defect, other) not in pair_idx:
                 continue
 
-            row = submission_df.loc[pair_index[(defect, other)]]
-            pred = row["baseline_prediction"]
+            idx_row = pair_idx[(defect, other)]
+            row = submission_df.loc[idx_row]
 
-            # Determine which defect is 'left' in this row
+            pred = row["baseline_prediction"]
+            tiebreak = row["baseline_tiebreak"]
             defect_is_left = row["left"] == defect
 
-            # Check if primary decision placed defect above other
-            primary_decision = pred
+            # PRIMARY decision
+            primary_win = (defect_is_left and pred == 1) or ((not defect_is_left) and pred == 0)
 
-            # Interpret: pred == 1 means left > right
-            if defect_is_left and primary_decision == 1:
-                primary_peers.append(other)
-                continue
-            elif (not defect_is_left) and primary_decision == 0:
+            if primary_win:
                 primary_peers.append(other)
                 continue
 
-            # Otherwise, check secondary tiebreak
-            tiebreak = row["baseline_tiebreak"]
-            if defect_is_left and tiebreak > 0:
-                secondary_peers.append(other)
-            elif (not defect_is_left) and tiebreak < 0:
+            # SECONDARY tiebreak decision
+            secondary_win = (defect_is_left and tiebreak > 0) or ((not defect_is_left) and tiebreak < 0)
+            if secondary_win:
                 secondary_peers.append(other)
 
         sentences = []
 
-        # --- Primary heuristic explanations ---
-        if len(primary_peers) > 0:
-            peers_txt = ", ".join(f"{p} (rank {rank_pos[p]})" for p in primary_peers)
-            if len(primary_base) == 1:
-                b = base_desc(primary_base[0])
-                if len(primary_peers) == 1:
-                    sent = f"Ranked above defect {peers_txt} because its {b} score is higher."
-                else:
-                    sent = f"Ranked above defects {peers_txt} because its {b} score is higher."
-            else:
-                # Multiple primary heuristics (rare but supported)
-                bases_txt = ", ".join(base_desc(b) for b in primary_base)
-                sent = f"Ranked above defects {peers_txt} based on {bases_txt} scores."
+        # --- Primary heuristic explanation ---
+        if primary_peers:
+            peers_ranks = [rank_pos[p] for p in primary_peers]
+            # Baseline always uses "more" because it is a heuristic score, not a signed LR contribution.
+            # But the model might prefer smaller values? If so, adapt here.
+            sent = _assemble_sentence(base_for_primary, peers_ranks, signed_value=1.0)
             sentences.append(sent)
 
-        # --- Secondary heuristic explanations (ties) ---
-        if len(secondary_peers) > 0:
-            peers_txt = ", ".join(f"{p} (rank {rank_pos[p]})" for p in secondary_peers)
-            if len(secondary_base) == 1:
-                b = base_desc(secondary_base[0])
-                if len(secondary_peers) == 1:
-                    sent = f"Tied on the main heuristic but ranked above defect {peers_txt} due to {b}."
-                else:
-                    sent = f"Tied on the main heuristic but ranked above defects {peers_txt} due to {b}."
-            else:
-                bases_txt = ", ".join(base_desc(b) for b in secondary_base)
-                sent = f"Tied on the main heuristic but broken in favor of this defect using {bases_txt}."
+        # --- Secondary explanation ---
+        if secondary_peers and base_for_secondary:
+            peers_ranks = [rank_pos[p] for p in secondary_peers]
+            sent = _assemble_sentence(base_for_secondary, peers_ranks, signed_value=1.0)
             sentences.append(sent)
 
-        if len(sentences) == 0:
-            sentences = ["No strong heuristic differences compared to lower-ranked defects."]
+        if not sentences:
+            sentences = ["Placed here: no heuristic clearly distinguished it from lower-ranked defects."]
 
         explanations[defect] = sentences[:MAX_EXPLANATION_LENGTH]
 
