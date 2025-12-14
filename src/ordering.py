@@ -95,12 +95,12 @@ def rank_submission(submission_df: pd.DataFrame, prediction_col: str, tiebreak_c
             scores = {n: sum(data["tiebreak"] for _, _, data in G.out_edges(n, data=True)) for n in zero_in}
             next_node = max(scores, key=scores.get)
         else:
-            # Cycle exists → pick node with lowest "net in vs out tiebreak"
+            # Cycle exists, pick highest dominance
             scores = {}
             for n in G.nodes():
                 out_score = sum(data["tiebreak"] for _, _, data in G.out_edges(n, data=True))
                 in_score = sum(data["tiebreak"] for _, _, data in G.in_edges(n, data=True))
-                scores[n] = out_score - in_score  # higher is more "dominant"
+                scores[n] = out_score - in_score  # higher is stronger
             # Remove node with highest dominance first
             next_node = max(scores, key=scores.get)
 
