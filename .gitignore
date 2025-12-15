@@ -159,6 +159,7 @@ labelling_app/survey_data/*
 
 # TODO Images might/might not be part of the final repo
 images/*
+thesis_plot/*
 
 # ignore VS code settings
 .vscode/*
